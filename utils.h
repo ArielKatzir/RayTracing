@@ -39,6 +39,10 @@ class Utils {
             return multiply_vector_by_factor((1/t) , v);
         }
 
+        Vertex to_ver(Vector3 v){
+            return Vertex(v.x,v.y,v.z);
+        }
+
         Vector3 norm(Vector3 v){
             float x,y,z;
             x = v.x/v.length();
@@ -49,6 +53,10 @@ class Utils {
 
         // get the dot product of two vectors
         inline double dot(const Vector3 &u, const Vector3 &v){
+            return u.x * v.x + u.y * v.y + u.z * v.z;
+        }
+        // get the dot product of two vectors
+        inline double dot(const Vector3 &u, const Vertex &v){
             return u.x * v.x + u.y * v.y + u.z * v.z;
         }
 
