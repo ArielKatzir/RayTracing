@@ -37,7 +37,7 @@ int main() {
 
     Utils util = Utils();
 
-     //trisngle
+    //triangle for single triangle testing
     Vertex A = Vertex(0 , 1.25 , 3);                                    
     Vertex B = Vertex(2 , -1.25, 3);                                    
     Vertex C = Vertex(-2, -1.25, 3);  
@@ -45,14 +45,13 @@ int main() {
     Triangle tri = Triangle(A,B,C);
 
     // The following transform allows 4D homogeneous coordinates to be transformed. It moves the supplied teapot model to somewhere visible.
-    Transform *transform = new Transform(1.0f, 0.0f, 0.0f, 0.0f,0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 7.0f,0.0f,0.0f,0.0f,1.0f);
+    Transform *transform = new Transform(   1.0f, 0.0f, 0.0f, 0.0f,
+                                            0.0f, 1.0f, 0.0f, -2.0f,
+                                            0.0f, 0.0f, 1.0f, 7.0f,
+                                            0.0f,0.0f,0.0f,1.0f);
 
     // Read in the teapot model.
     PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform);
-
-    Triangle triangle = Triangle(pm->vertex[pm->triangle[0][0]],pm->vertex[pm->triangle[0][1]],pm->vertex[pm->triangle[0][2]]);
-
-    
 
     Vector3 top_left_corner;
     top_left_corner = util.deduct_vectors(origin, util.divide_vector_by_factor(horizontal,2));
@@ -63,7 +62,7 @@ int main() {
 
     // iterate every pixel starting from top left
     for (int j = 0; j < img_h; j++) {
-        std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+        std::cerr << "\rScanlines remaining: " << j << '/' << img_h << std::flush;
         for (int i = 0; i < img_w; i++) {
             
             // getting new u and v
@@ -84,24 +83,26 @@ int main() {
             Ray r(Vertex(0,0,0), vector_for_ray);
 
 
-            // float small_t = maxfloat;
-            // for (int tri = 0; tri< pm->triangle_count; tri += 1){
-            //     Triangle triangle = Triangle(pm->vertex[pm->triangle[i][0]],pm->vertex[pm->triangle[i][1]],pm->vertex[pm->triangle[i][1]]);
-            //     float t = util.hit_triangle(triangle, r);
-            //     if (t < small_t){
-            //         small_t = t;
-            //     }
-            // }
-            float small_t = util.hit_triangle(tri,r); 
-            if (small_t > 0 && small_t !=maxfloat){
-                fb->plotPixel(i,j,0.0,1.0,1.0);
-            }else{
-                fb->plotPixel(i,j,0.0,0.0,0.0);
+            float small_t = maxfloat;
+            for (int tri = 0; tri< pm->triangle_count; tri += 1){
+                Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]],pm->vertex[pm->triangle[tri][1]],pm->vertex[pm->triangle[tri][2]]);
+                // std::cerr << triangle.getVertex0().x << " " << triangle.getVertex0().y << " " << triangle.getVertex0().z << "\n";
+                float t = util.hit_triangle(triangle, r);
+                if (t < maxfloat && t != -1.0){
+                    small_t = t;
+                    //std::cerr << small_t << " ";
+                }
             }
-            // break;
+            
+            if (small_t > 0 && small_t !=maxfloat){
+            fb->plotPixel(i,j,0.0,1.0,1.0);
+            fb->plotDepth(i,j,small_t);
+            }
         }
-        // break;
     }
-    fb->writeRGBFile((char*)("image.ppm"));
+    fb->writeRGBFile((char*)("image_depth.ppm"));
+    fb->writeDepthFile((char*)("image_rgb.ppm"));
+
+    
     std::cerr << "\nDone.\n";
 }

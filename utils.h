@@ -1,6 +1,8 @@
 #include "my_vector.h"
 #include "vertex.h"
 #include "my_triangle.h"
+#include "polymesh.h"
+
 
 
 class Utils {
@@ -105,7 +107,6 @@ class Utils {
         }
     }        
 
-
     float hit_triangle(Triangle triangle , Ray r){
         Vertex A = triangle.getVertex0();                                   
         Vertex B = triangle.getVertex1();                                  
@@ -143,6 +144,10 @@ class Utils {
         }else{
             return -1.0;
         }
+
+    }
+
+    void plot_polymesh_triangle(PolyMesh pm, Ray ray){
 
     }
          
