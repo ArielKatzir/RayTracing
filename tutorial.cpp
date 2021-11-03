@@ -37,7 +37,7 @@ int main() {
 
     lower_left_corner = util.deduct_vectors(origin, util.divide_vector_by_factor(horizontal,2));
     lower_left_corner = util.deduct_vectors(lower_left_corner, util.divide_vector_by_factor(vertical,2));
-    lower_left_corner = util.deduct_vectors(lower_left_corner, Vector3(0, 0, focal_length));
+    lower_left_corner = util.deduct_vectors(lower_left_corner, Vector3(0, 0, -focal_length));
 
 
     int counter = img_h/2;
@@ -69,7 +69,7 @@ int main() {
             Ray r(Vertex(0,0,0), vector_for_ray);
 
             // find intersection points.
-            float t = util.hit_sphere(Vertex(0,0,1), 0.5, r);
+            float t = util.hit_sphere(Vertex(0,0,-1), 0.5, r);
             
             if (t > 0){
                 // getting the normal if there is an intersection
