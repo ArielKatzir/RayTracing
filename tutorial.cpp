@@ -6,6 +6,10 @@
 #include "utils.h"
 #include "hit.h"
 #include "framebuffer.h"
+#include "transform.h"
+#include "polymesh.h"
+#include <limits>
+
 
 
 
@@ -38,17 +42,16 @@ int main() {
     Vertex B = Vertex(2 , -1.25, 3);                                    
     Vertex C = Vertex(-2, -1.25, 3);  
 
-    Vector3 AB = util.get_vector_ab_from_vertices(A,B);
-    Vector3 AC = util.get_vector_ab_from_vertices(A,C);
-    Vector3 BC = util.get_vector_ab_from_vertices(B,C);
-    Vector3 CA = util.get_vector_ab_from_vertices(C,A);
+    Triangle tri = Triangle(A,B,C);
 
+    // The following transform allows 4D homogeneous coordinates to be transformed. It moves the supplied teapot model to somewhere visible.
+    Transform *transform = new Transform(1.0f, 0.0f, 0.0f, 0.0f,0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 7.0f,0.0f,0.0f,0.0f,1.0f);
 
+    // Read in the teapot model.
+    PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform);
 
-    Vector3 normal = util.cross(AB,AC);
-    normal.normalise();
+    Triangle triangle = Triangle(pm->vertex[pm->triangle[0][0]],pm->vertex[pm->triangle[0][1]],pm->vertex[pm->triangle[0][2]]);
 
-    float d = -util.dot(normal,A);
     
 
     Vector3 top_left_corner;
@@ -56,9 +59,11 @@ int main() {
     top_left_corner = util.deduct_vectors(top_left_corner, util.divide_vector_by_factor(vertical,2));
     top_left_corner = util.add_vectors(top_left_corner, Vector3(0, 0, focal_length));
 
+    float maxfloat  = std::numeric_limits<float>::max();
 
     // iterate every pixel starting from top left
     for (int j = 0; j < img_h; j++) {
+        std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
         for (int i = 0; i < img_w; i++) {
             
             // getting new u and v
@@ -70,54 +75,32 @@ int main() {
             Vector3 vector_for_ray = util.multiply_vector_by_factor(horizontal, u);
             vector_for_ray = util.add_vectors(vector_for_ray, util.multiply_vector_by_factor(vertical, v));
             vector_for_ray = util.add_vectors(vector_for_ray, top_left_corner);
+
             
             // normalise
             vector_for_ray.normalise();
 
-            //std::cerr << vector_for_ray.x << " " << vector_for_ray.y << " " << vector_for_ray.z << "\n";
-
             // generate ray from origin
             Ray r(Vertex(0,0,0), vector_for_ray);
 
-            // find intersection points.
-            float t = (-(util.dot(normal,r.origin) + d))/(util.dot(normal,r.direction));
 
-            //std::cout << t << "\n";
-
-            if (t<=0){
-                fb->plotPixel(i,j,0.0,0.0,0.0);
-                break;
-            }
-
-
-
-            // intersection point
-            Vertex P = util.to_ver(util.add_to_vector(util.multiply_vector_by_factor(r.direction,t),r.origin));
-
-            Vector3 AP,BP,CP;
-            AP = util.get_vector_ab_from_vertices(A,P);
-            BP = util.get_vector_ab_from_vertices(B,P);
-            CP = util.get_vector_ab_from_vertices(C,P);
-
-            float dot_cross_pa = util.dot(util.cross(AB,AP),normal);
-            float dot_cross_pb = util.dot(util.cross(BC,BP),normal);
-            float dot_cross_pc = util.dot(util.cross(CA,CP),normal);
-
-            //std::cerr << dot_cross_pa << " " << dot_cross_pb << " " << dot_cross_pc << "\n";
-
-
-
-            if (dot_cross_pa>=0.0 && dot_cross_pb>=0.0 && dot_cross_pc>=0.0){
+            // float small_t = maxfloat;
+            // for (int tri = 0; tri< pm->triangle_count; tri += 1){
+            //     Triangle triangle = Triangle(pm->vertex[pm->triangle[i][0]],pm->vertex[pm->triangle[i][1]],pm->vertex[pm->triangle[i][1]]);
+            //     float t = util.hit_triangle(triangle, r);
+            //     if (t < small_t){
+            //         small_t = t;
+            //     }
+            // }
+            float small_t = util.hit_triangle(tri,r); 
+            if (small_t > 0 && small_t !=maxfloat){
                 fb->plotPixel(i,j,0.0,1.0,1.0);
             }else{
                 fb->plotPixel(i,j,0.0,0.0,0.0);
             }
-
-            //std::cerr << dot_cross_pa << " " << dot_cross_pb << " " << dot_cross_pc << "\n";
-
-            
-            
+            // break;
         }
+        // break;
     }
     fb->writeRGBFile((char*)("image.ppm"));
     std::cerr << "\nDone.\n";

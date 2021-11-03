@@ -1,5 +1,6 @@
 #include "my_vector.h"
 #include "vertex.h"
+#include "my_triangle.h"
 
 
 class Utils {
@@ -103,5 +104,46 @@ class Utils {
             return (-b - sqrt(discriminant))/ (2.0 * a);
         }
     }        
+
+
+    float hit_triangle(Triangle triangle , Ray r){
+        Vertex A = triangle.getVertex0();                                   
+        Vertex B = triangle.getVertex1();                                  
+        Vertex C = triangle.getVertex2(); 
+
+        //std::cout <<  A.get_x() << " " << A.get_y() << " " << A.get_z() << "\n";  
+
+        Vector3 AB = get_vector_ab_from_vertices(A,B);
+        Vector3 AC = get_vector_ab_from_vertices(A,C);
+        Vector3 BC = get_vector_ab_from_vertices(B,C);
+        Vector3 CA = get_vector_ab_from_vertices(C,A);
+
+        Vector3 normal = cross(AB,AC);
+        normal.normalise();
+
+        float d = -dot(normal,A);
+
+        // find intersection points.
+        float t = (-(dot(normal,r.origin) + d))/(dot(normal,r.direction));
+
+        // intersection point
+        Vertex P = to_ver(add_to_vector(multiply_vector_by_factor(r.direction,t),r.origin));
+
+        Vector3 AP,BP,CP;
+        AP = get_vector_ab_from_vertices(A,P);
+        BP = get_vector_ab_from_vertices(B,P);
+        CP = get_vector_ab_from_vertices(C,P);
+
+        float dot_cross_pa = dot(cross(AB,AP),normal);
+        float dot_cross_pb = dot(cross(BC,BP),normal);
+        float dot_cross_pc = dot(cross(CA,CP),normal);
+
+        if (dot_cross_pa>=0.0 && dot_cross_pb>=0.0 && dot_cross_pc>=0.0){
+            return t;
+        }else{
+            return -1.0;
+        }
+
+    }
          
 };
