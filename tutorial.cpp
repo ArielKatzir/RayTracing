@@ -9,6 +9,8 @@
 #include "transform.h"
 #include "polymesh.h"
 #include <limits>
+#include <cmath>
+
 
 
 
@@ -20,8 +22,8 @@
 int main() {
 
     // image setting
-    const int img_w = 512;
-    const int img_h = 256;
+    const int img_w = 200;
+    const int img_h = 100;
 
     // init framebuffer object
     FrameBuffer *fb = new FrameBuffer(img_w,img_h);
@@ -41,8 +43,9 @@ int main() {
     Vertex A = Vertex(0 , 1.25 , 3);                                    
     Vertex B = Vertex(2 , -1.25, 3);                                    
     Vertex C = Vertex(-2, -1.25, 3);  
-
     Triangle tri = Triangle(A,B,C);
+
+    int theta = 90;
 
     // The following transform allows 4D homogeneous coordinates to be transformed. It moves the supplied teapot model to somewhere visible.
     Transform *transform = new Transform(   1.0f, 0.0f, 0.0f, 0.0f,
@@ -50,15 +53,13 @@ int main() {
                                             0.0f, 0.0f, 1.0f, 7.0f,
                                             0.0f,0.0f,0.0f,1.0f);
 
-    // Read in the teapot model.
-    PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform);
+    // Read in the  model.
+    PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform);        
 
     Vector3 top_left_corner;
-    top_left_corner = util.deduct_vectors(origin, util.divide_vector_by_factor(horizontal,2));
-    top_left_corner = util.deduct_vectors(top_left_corner, util.divide_vector_by_factor(vertical,2));
-    top_left_corner = util.add_vectors(top_left_corner, Vector3(0, 0, focal_length));
-
-    float maxfloat  = std::numeric_limits<float>::max();
+    top_left_corner = origin-(horizontal/2);
+    top_left_corner = top_left_corner-(vertical/2);
+    top_left_corner = top_left_corner+Vector3(0, 0, focal_length);
 
     // iterate every pixel starting from top left
     for (int j = 0; j < img_h; j++) {
@@ -71,33 +72,17 @@ int main() {
             
             // getting the ray by adding up vectors from left corner of the view port,
             // its vector to the horizontall, its vector to its vertical and the origin.
-            Vector3 vector_for_ray = util.multiply_vector_by_factor(horizontal, u);
-            vector_for_ray = util.add_vectors(vector_for_ray, util.multiply_vector_by_factor(vertical, v));
-            vector_for_ray = util.add_vectors(vector_for_ray, top_left_corner);
+            Vector3 vector_for_ray = horizontal*u;
+            vector_for_ray = vector_for_ray+(vertical*v);
+            vector_for_ray = vector_for_ray+top_left_corner;
 
-            
             // normalise
             vector_for_ray.normalise();
 
             // generate ray from origin
             Ray r(Vertex(0,0,0), vector_for_ray);
 
-
-            float small_t = maxfloat;
-            for (int tri = 0; tri< pm->triangle_count; tri += 1){
-                Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]],pm->vertex[pm->triangle[tri][1]],pm->vertex[pm->triangle[tri][2]]);
-                // std::cerr << triangle.getVertex0().x << " " << triangle.getVertex0().y << " " << triangle.getVertex0().z << "\n";
-                float t = util.hit_triangle(triangle, r);
-                if (t < maxfloat && t != -1.0){
-                    small_t = t;
-                    //std::cerr << small_t << " ";
-                }
-            }
-            
-            if (small_t > 0 && small_t !=maxfloat){
-            fb->plotPixel(i,j,0.0,1.0,1.0);
-            fb->plotDepth(i,j,small_t);
-            }
+            util.plot_polymesh_triangle(fb, pm, r, i ,j);
         }
     }
     fb->writeRGBFile((char*)("image_depth.ppm"));
