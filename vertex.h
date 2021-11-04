@@ -38,7 +38,9 @@ class Vertex {
 			w = 1.0f;
 		}
 
-
+		Vertex operator-(const Vertex &vertex) const{
+            return Vertex(x - vertex.x, y - vertex.y, z - vertex.z);
+        }
 		
 		
 		// return vertex values

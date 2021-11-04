@@ -22,8 +22,8 @@
 int main() {
 
     // image setting
-    const int img_w = 200;
-    const int img_h = 100;
+    const int img_w = 1000;
+    const int img_h = 500;
 
     // init framebuffer object
     FrameBuffer *fb = new FrameBuffer(img_w,img_h);

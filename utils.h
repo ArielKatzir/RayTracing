@@ -65,7 +65,7 @@ class Utils {
             }
         }        
 
-        float hit_triangle_plane_algo(Triangle triangle , Ray r){
+        float hit_triangle_plane_algo(Triangle triangle, Ray r){
             Vertex A = triangle.getVertex0();                                   
             Vertex B = triangle.getVertex1();                                  
             Vertex C = triangle.getVertex2(); 
@@ -105,12 +105,17 @@ class Utils {
 
         }
 
-        void plot_polymesh_triangle(FrameBuffer *fb,PolyMesh *pm, Ray ray, int i, int j){
+        void plot_polymesh_triangle(FrameBuffer *fb,
+                                    PolyMesh *pm,
+                                    Ray ray,
+                                    int i,
+                                    int j
+        ){
             float maxfloat  = std::numeric_limits<float>::max();
             float small_t = maxfloat;
             for (int tri = 0; tri < pm->triangle_count; tri += 1){
                 Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]], pm->vertex[pm->triangle[tri][1]], pm->vertex[pm->triangle[tri][2]]);
-                float t = hit_triangle_plane_algo(triangle, ray);
+                float t = hit_triangle_moller_trumbore(triangle, ray);
                 if (t < maxfloat && t != -1.0){
                     small_t = t;
                 }
@@ -124,6 +129,42 @@ class Utils {
         }
 
 
-        
+        float hit_triangle_moller_trumbore(Triangle triangle, Ray r){
+
+            const float EPSILON = 0.0000001;
+            Vertex vertex0 = triangle.getVertex0();
+            Vertex vertex1 = triangle.getVertex1();  
+            Vertex vertex2 = triangle.getVertex2();
+            Vector3 edge1, edge2, h, s, q;
+            float a,f,u,v;
+
+            edge1 = get_vector(vertex0,vertex1);
+            edge2 = get_vector(vertex0,vertex2);
+
+            h = cross(r.direction,edge2);
+            a = dot(edge1,h);
+
+            if (a > -EPSILON && a < EPSILON)
+                return -1.0;    // This ray is parallel to this triangle.
+            f = 1.0/a;
+            s = get_vector(vertex0,r.origin);
+            u = f * dot(s,h);
+            if (u < 0.0 || u > 1.0)
+                return -1.0;
+            q = cross(s,edge1);
+            v = f * dot(r.direction,q);
+            if (v < 0.0 || u + v > 1.0)
+                return -1.0;
+            // At this stage we can compute t to find out where the intersection point is on the line.
+            float t = f * dot(edge2,q);
+            if (t > EPSILON){
+                return t;
+            }
+            else // This means that there is a line intersection but not a ray intersection.
+                return -1.0;
+        }
+
+
+
          
 };
