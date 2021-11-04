@@ -66,6 +66,7 @@ class Utils {
         }        
 
         float hit_triangle_plane_algo(Triangle triangle, Ray r){
+            // https://courses.cs.washington.edu/courses/cse557/09au/lectures/extras/triangle_intersection.pdf
             Vertex A = triangle.getVertex0();                                   
             Vertex B = triangle.getVertex1();                                  
             Vertex C = triangle.getVertex2(); 
@@ -130,6 +131,7 @@ class Utils {
 
 
         float hit_triangle_moller_trumbore(Triangle triangle, Ray r){
+            //https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
             const float EPSILON = 0.0000001;
             Vertex vertex0 = triangle.getVertex0();
