@@ -5,6 +5,8 @@
 
 #include <cmath>
 #include <iostream>
+#include "vertex.h"
+
 using std::sqrt;
 
 class Vector3 {
@@ -34,29 +36,21 @@ class Vector3 {
         // return the negative of the vector
         Vector3 operator-() const { return Vector3(-x, -y, -z); }
 
-        // add to each dimention in the vector
-        Vector3& operator+=(const Vector3 &v) {
-            x += v.x;
-            y += v.y;
-            z += v.z;
-            return *this;
-        }
-        // multipy vector by a factor t
-        Vector3& operator*=(const float t) {
-            x *= t;
-            y *= t;
-            z *= t;
-            return *this;
+
+        Vector3 operator-(const Vector3 &vector) const{
+            return Vector3(x - vector.x, y - vector.y, z - vector.z);
         }
 
-        // get the dot product of two vectors (this)
-        inline double dot( const Vector3 &v){
-            return x * v.x + y * v.y + z * v.z;
+        Vector3 operator+(const Vector3 &vector) const{
+            return Vector3(x + vector.x, y + vector.y, z + vector.z);
         }
 
-        // divide vector by a factor t
-        Vector3& operator/=(const float t) {
-            return *this *= 1/t;
+        Vector3 operator*(float multiplier) const{
+            return Vector3(x * multiplier, y * multiplier, z * multiplier); 
+        }
+
+        Vector3 operator/(float multiplier) const{
+            return Vector3(x / multiplier, y / multiplier, z / multiplier); 
         }
 
         void normalise(){
@@ -70,6 +64,8 @@ class Vector3 {
         double length_squared() const {
             return x*x + y*y + z*z;
         }
+
+        
 
         // get magnitude of the vector 
         double length() const {

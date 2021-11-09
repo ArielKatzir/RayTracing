@@ -25,8 +25,11 @@ public:
     	Vertex *vertex;
 	TriangleIndex *triangle;
 
+
 	void do_construct(char *file, Transform *transform);
 	
 	PolyMesh(char *file);
 	PolyMesh(char *file, Transform *transform);
+	
+
 };

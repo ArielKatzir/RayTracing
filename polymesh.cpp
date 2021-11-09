@@ -35,10 +35,10 @@ void PolyMesh::do_construct(char *file, Transform *transform)
   ifstream myfile;
   string line;
 
-  myfile.open("teapot.ply");
+  myfile.open(file);
  
   // Getting vertex count and triangle count  
-  while (vertex_count==NULL || triangle_count==NULL)
+  while (vertex_count==0 || triangle_count==0)
   {
     getline(myfile, line);
     if (in(line, "vertex")) vertex_count = get_count(line);

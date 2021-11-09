@@ -105,4 +105,36 @@ public:
     in.z = z;
     in.w = w;
   };
+
+  template<std::size_t N, std::size_t M, std::size_t P>
+  float mult(float A[N][M], float B[M][P]) {
+      static_assert(N > 1, "N must be greater than 1");
+      static_assert(M > 1, "M must be greater than 1");
+      static_assert(P > 1, "P must be greater than 1");
+
+      float C[N][P];
+
+      for (int n = 0; n < N; n++) {
+          for (int p = 0; p < P; p++) {
+              float num = 0;
+              for (int m = 0; m < M; m++) {
+                  num += A[n][m] * B[m][p];
+              }
+              C[n][p] = num;
+          }
+      }
+
+      return C;
+  }
+
+
+
+//     mult<4, 3, 2>(A, B);
+//     return 0;
+// }
+
+
+
+
+
 };
