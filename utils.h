@@ -4,9 +4,9 @@
 #include "polymesh.h"
 #include "framebuffer.h"
 #include "ray.h"
+#include "my_sphere.h"
 
-
-
+#pragma once
 
 
 class Utils {
@@ -26,7 +26,6 @@ class Utils {
             return Vertex(v.x + u.x, v.y + u.y, v.z + u.z);
         }
 
-
         // get the dot product of two vectors
         inline double dot(const Vector3 &u, const Vector3 &v){
             return u.x * v.x + u.y * v.y + u.z * v.z;
@@ -44,27 +43,7 @@ class Utils {
             );
         }
     
-        float hit_sphere(const Vertex center, float radius, Ray& r) {
-            Utils util = Utils();
-            
-            // get vector from origin to centre
-            Vector3 oc = util.get_vector(Vertex(0,0,0) , center);
-
-            // set discriminant values
-            float a = util.dot(r.get_direction(), r.get_direction());
-            float b = 2.0 * util.dot(oc, r.get_direction());
-            float c = util.dot(oc, oc) - radius*radius;
-            float discriminant = b*b - 4*a*c;
-            // return intersection value if there is an intersection - discriminant is less than 0.
-            if (discriminant < 0){
-                return -1.0;
-            }
-            else{
-                // return -b- instead of -b+ because we want to closest value.
-                return (-b - sqrt(discriminant))/ (2.0 * a);
-            }
-        }        
-
+        
         float hit_triangle_plane_algo(Triangle triangle, Ray r){
             // https://courses.cs.washington.edu/courses/cse557/09au/lectures/extras/triangle_intersection.pdf
             Vertex A = triangle.getVertex0();                                   
@@ -106,32 +85,39 @@ class Utils {
 
         }
 
-        void plot_polymesh_triangle(FrameBuffer *fb,
-                                    PolyMesh *pm,
-                                    Ray ray,
-                                    int i,
-                                    int j
-        ){
-            float maxfloat  = std::numeric_limits<float>::max();
-            float small_t = maxfloat;
-            for (int tri = 0; tri < pm->triangle_count; tri += 1){
-                Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]], pm->vertex[pm->triangle[tri][1]], pm->vertex[pm->triangle[tri][2]]);
-                float t = hit_triangle_moller_trumbore(triangle, ray);
-                if (t < maxfloat && t != -1.0){
-                    small_t = t;
-                }
-            }
+        
+        
+    float hit_sphere(Vertex centre, float radius, Ray& r) {
+            Utils util = Utils();
+            
+            // get vector from origin to centre
+            Vector3 co = util.get_vector(centre , Vertex(0,0,0));
 
-            if (small_t > 0 && small_t != maxfloat)
-            {
-                fb->plotPixel(i, j, 0.0, 1.0, 1.0);
-                fb->plotDepth(i, j, small_t);
+            float maxfloat = std::numeric_limits<float>::max();
+            float max = maxfloat;
+
+            // set discriminant values
+            float a = util.dot(r.get_direction(), r.get_direction());
+            float b = 2.0 * util.dot(co, r.get_direction());
+            float c = util.dot(co, co) - radius*radius;
+            float discriminant = b*b - 4*a*c;
+            // return intersection value if there is an intersection - discriminant is less than 0.
+            if (discriminant < 0){
+                return max;
             }
-        }
+            else{
+                // return -b- instead of -b+ because we want to closest value.
+                return (-b - sqrt(discriminant))/ (2.0 * a);
+            }
+        }        
+
+        
 
 
         float hit_triangle_moller_trumbore(Triangle triangle, Ray r){
             //https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+
+            float maxfloat = std::numeric_limits<float>::max();
 
             const float EPSILON = 0.0000001;
             Vertex vertex0 = triangle.getVertex0();
@@ -147,26 +133,83 @@ class Utils {
             a = dot(edge1,h);
 
             if (a > -EPSILON && a < EPSILON)
-                return -1.0;    // This ray is parallel to this triangle.
+                return maxfloat;    // This ray is parallel to this triangle.
             f = 1.0/a;
             s = get_vector(vertex0,r.origin);
             u = f * dot(s,h);
             if (u < 0.0 || u > 1.0)
-                return -1.0;
+                return maxfloat;
             q = cross(s,edge1);
             v = f * dot(r.direction,q);
             if (v < 0.0 || u + v > 1.0)
-                return -1.0;
+                return maxfloat;
             // At this stage we can compute t to find out where the intersection point is on the line.
             float t = f * dot(edge2,q);
             if (t > EPSILON){
                 return t;
             }
             else // This means that there is a line intersection but not a ray intersection.
-                return -1.0;
+                return maxfloat;
         }
 
+        // void plot_polymesh_triangle(FrameBuffer *fb,
+        //                             PolyMesh *pm,
+        //                             Scene scene
+        // ){
+        //     // iterate every pixel starting from top left
+        //     for (int j = 0; j < scene.img_height; j++)
+        //     {
+        //         std::cerr << "\rScanlines remaining: " << j << '/' << scene.img_height << std::flush;
+        //         for (int i = 0; i < scene.img_width; i++){
 
+        //             // getting new u and v
+        //             float u = double(i) / (scene.img_width);
+        //             float v = double(j) / (scene.img_height);
 
-         
-};
+        //             // getting the ray by adding up vectors from left corner of the view port,
+        //             // its vector to the horizontall, its vector to its vertical and the origin.
+        //             Vector3 vector_for_ray = scene.horizontal * u;
+        //             vector_for_ray = vector_for_ray + (scene.vertical * v);
+        //             vector_for_ray = vector_for_ray + scene.top_left_corner;
+
+        //             // normalise
+        //             vector_for_ray.normalise();
+
+        //             // generate ray from origin
+        //             Ray r(Vertex(0, 0, 0), vector_for_ray);
+                    
+        //             float maxfloat = std::numeric_limits<float>::max();
+        //             float small_t = maxfloat;
+        //             Triangle temp_tri = Triangle();
+        //             for (int tri = 0; tri < pm->triangle_count; tri += 1)
+        //             {
+        //                 Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]], pm->vertex[pm->triangle[tri][1]], pm->vertex[pm->triangle[tri][2]]);
+        //                 float t = hit_triangle_moller_trumbore(triangle, r);
+        //                 if (t < maxfloat && t != -1.0)
+        //                 {
+        //                     small_t = t;
+        //                     temp_tri = triangle;
+        //                 }
+        //             }
+
+        //             if (small_t > 0 && small_t != maxfloat)
+        //             {
+        //                 Vector3 norm = r.on_line(small_t) - Vector3(0,0,0);
+        //                 norm.normalise();
+        //                 //norm = cross(norm, temp_tri.getVertex0().vect(temp_tri.getVertex1()));
+
+        //                 float c1 = (norm.x+1)*0.5;
+        //                 float c2 = (norm.y+1)*0.5;
+        //                 float c3 = (norm.z+1)*0.5;
+
+        //                 fb->plotPixel(i, j, c1, c2, c3);
+        //                 fb->plotDepth(i, j, small_t);
+        //             }
+        //         }
+        //     }
+        // }
+
+        
+
+        
+    };

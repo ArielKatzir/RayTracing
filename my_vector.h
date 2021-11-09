@@ -65,6 +65,8 @@ class Vector3 {
             return x*x + y*y + z*z;
         }
 
+        
+
         // get magnitude of the vector 
         double length() const {
             return sqrt(length_squared());

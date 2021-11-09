@@ -1,12 +1,7 @@
 #include "my_vector.h"
 #include "vertex.h"
 
-
-
-
-/* Used by intersection algorithms within this file.
- * Determines precision of when a number is treated as a 0. */
-
+#pragma once
 class Triangle
 {
 
@@ -21,6 +16,12 @@ class Triangle
         vertex_0_ = v0;
         vertex_1_ = v1;
         vertex_2_ = v2;
+    }
+    Triangle()
+    {
+        vertex_0_ = Vertex(0,0,0);
+        vertex_1_ = Vertex(0,0,0);
+        vertex_2_ = Vertex(0,0,0);
     }
 
     Vertex getVertex0() const { return vertex_0_; }
