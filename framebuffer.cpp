@@ -61,6 +61,8 @@ int FrameBuffer::plotPixel(int x, int y, float red, float green, float blue)
   this->framebuffer[y * this->width + x].green = green;
   this->framebuffer[y * this->width + x].blue = blue;
 
+  //std::cout << red << " " << green << " " << blue << "\n";
+
   return 0;
 }
 
@@ -129,9 +131,9 @@ int FrameBuffer::writeRGBFile(char *filename)
 
   for (int j = 0; j<  this->width*this->height; j += 1)
   {
-    outfile << (unsigned char)((this->framebuffer[j].red/max)*255.0);
-    outfile << (unsigned char)((this->framebuffer[j].green/max)*255.0);
-    outfile << (unsigned char)((this->framebuffer[j].blue/max)*255.0);
+    outfile << (unsigned char)((this->framebuffer[j].red)*255.0);
+    outfile << (unsigned char)((this->framebuffer[j].green)*255.0);
+    outfile << (unsigned char)((this->framebuffer[j].blue)*255.0);
   }
   
   outfile.close();

@@ -8,6 +8,7 @@
 
 #pragma once
 
+typedef float Colour[3];
 
 class Utils {
     public:
@@ -50,8 +51,6 @@ class Utils {
             Vertex B = triangle.getVertex1();                                  
             Vertex C = triangle.getVertex2(); 
 
-            //std::cout <<  A.get_x() << " " << A.get_y() << " " << A.get_z() << "\n";  
-
             Vector3 AB = get_vector(A,B);
             Vector3 AC = get_vector(A,C);
             Vector3 BC = get_vector(B,C);
@@ -86,12 +85,14 @@ class Utils {
         }
 
         
-        
-    float hit_sphere(Vertex centre, float radius, Ray& r) {
+        float hit_sphere(Sphere s, Ray& r) {
             Utils util = Utils();
+
+            Vertex centre = s.getCentre();
+            float radius = s.getRadius();
             
             // get vector from origin to centre
-            Vector3 co = util.get_vector(centre , Vertex(0,0,0));
+            Vector3 co = util.get_vector(centre , r.origin);
 
             float maxfloat = std::numeric_limits<float>::max();
             float max = maxfloat;
@@ -110,9 +111,6 @@ class Utils {
                 return (-b - sqrt(discriminant))/ (2.0 * a);
             }
         }        
-
-        
-
 
         float hit_triangle_moller_trumbore(Triangle triangle, Ray r){
             //https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
@@ -152,64 +150,24 @@ class Utils {
                 return maxfloat;
         }
 
-        // void plot_polymesh_triangle(FrameBuffer *fb,
-        //                             PolyMesh *pm,
-        //                             Scene scene
-        // ){
-        //     // iterate every pixel starting from top left
-        //     for (int j = 0; j < scene.img_height; j++)
-        //     {
-        //         std::cerr << "\rScanlines remaining: " << j << '/' << scene.img_height << std::flush;
-        //         for (int i = 0; i < scene.img_width; i++){
+        void plot_colour_with_intensity(int i, int j,float t, Ray r, FrameBuffer *fb, float I, Colour c){
+                
+                float red = c[0]*I;
+                float green = c[1]*I;
+                float blue = c[2]*I;
 
-        //             // getting new u and v
-        //             float u = double(i) / (scene.img_width);
-        //             float v = double(j) / (scene.img_height);
+                if (red > 1){
+                    red = 1;
+                }
+                if (blue > 1){
+                    blue = 1;
+                }
+                if (green > 1){
+                    green = 1;
+                }
 
-        //             // getting the ray by adding up vectors from left corner of the view port,
-        //             // its vector to the horizontall, its vector to its vertical and the origin.
-        //             Vector3 vector_for_ray = scene.horizontal * u;
-        //             vector_for_ray = vector_for_ray + (scene.vertical * v);
-        //             vector_for_ray = vector_for_ray + scene.top_left_corner;
-
-        //             // normalise
-        //             vector_for_ray.normalise();
-
-        //             // generate ray from origin
-        //             Ray r(Vertex(0, 0, 0), vector_for_ray);
-                    
-        //             float maxfloat = std::numeric_limits<float>::max();
-        //             float small_t = maxfloat;
-        //             Triangle temp_tri = Triangle();
-        //             for (int tri = 0; tri < pm->triangle_count; tri += 1)
-        //             {
-        //                 Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]], pm->vertex[pm->triangle[tri][1]], pm->vertex[pm->triangle[tri][2]]);
-        //                 float t = hit_triangle_moller_trumbore(triangle, r);
-        //                 if (t < maxfloat && t != -1.0)
-        //                 {
-        //                     small_t = t;
-        //                     temp_tri = triangle;
-        //                 }
-        //             }
-
-        //             if (small_t > 0 && small_t != maxfloat)
-        //             {
-        //                 Vector3 norm = r.on_line(small_t) - Vector3(0,0,0);
-        //                 norm.normalise();
-        //                 //norm = cross(norm, temp_tri.getVertex0().vect(temp_tri.getVertex1()));
-
-        //                 float c1 = (norm.x+1)*0.5;
-        //                 float c2 = (norm.y+1)*0.5;
-        //                 float c3 = (norm.z+1)*0.5;
-
-        //                 fb->plotPixel(i, j, c1, c2, c3);
-        //                 fb->plotDepth(i, j, small_t);
-        //             }
-        //         }
-        //     }
-        // }
-
+                fb->plotPixel(i, j, red, green, blue);
+        }
         
-
-        
+    
     };

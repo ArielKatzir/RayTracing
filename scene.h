@@ -5,9 +5,15 @@
 #include "polymesh.h"
 #include "framebuffer.h"
 #include "utils.h"
+#include "light.h"
+
 #include <vector>
+#include <cmath>
+
+using namespace std;
 
 
+// bug - sphere intersection is going backwards, make sure you only send positive t values --- shadows
 
 #pragma once
 
@@ -17,6 +23,9 @@ class Scene {
         int img_width,img_height;
         float _viewport_w,_viewport_h,_focal_length;
         Vector3 origin,horizontal,vertical,top_left_corner;
+        bool include_shadow, include_diffuse, include_specular;
+        PointLight point_light;
+
 
         // setting the max number of objects in the scene
         std::vector<PolyMesh*> meshes;
@@ -28,6 +37,12 @@ class Scene {
             _viewport_h = viewport_h;
             _viewport_w = viewport_w;
             _focal_length = focal_length;
+
+            include_shadow = false;
+            include_diffuse = false;
+            include_specular = false;
+
+            point_light = PointLight(Vertex(-2,3,-2));
 
             origin = Vector3(0, 0, 0);
             horizontal = Vector3(viewport_w, 0, 0);
@@ -47,6 +62,17 @@ class Scene {
             meshes.push_back(pm);
         }
 
+        void add_shadows(){
+            include_shadow = true;
+        }
+
+        void add_diffuse(){
+            include_diffuse = true;
+        }
+
+        void add_specular(){
+            include_specular = true;
+        }
 
         void render(FrameBuffer *fb){
             int mesh_n = meshes.size();
@@ -78,19 +104,25 @@ class Scene {
                     float maxfloat = std::numeric_limits<float>::max();
                     float small_t = maxfloat;
                     float t = 0;
+                    float intensity = 0.2;
+                    Colour c = {0.3,0.5,0.7};
+                    Vertex intersection_point;
+                    Vector3 intersection_normal;
 
-                    // loops every sphere if there is one, subs the depth
+                    // loops every sphere.  if ray intersects, plot colour on pixel i,j.
                     for (int sp = 0; sp < sp_n; ++sp){
                         Sphere sphere = sps[sp];
-                        if (sps[sp].getRadius() != 0){
-                            t = util.hit_sphere(sphere.getCentre(), sphere.getRadius(), r);
-                            if (t < small_t){
-                                small_t = t;
-                                fb->plotDepth(i,j,small_t);
-                            }
+                        t = util.hit_sphere(sphere, r);
+                        if (t < small_t){
+                            small_t = t;
+                            intersection_point = r.on_line(small_t);
+                            intersection_normal = util.get_vector(sphere.getCentre() , intersection_point);
+                            intersection_normal.normalise();
+                            util.plot_colour_with_intensity(i, j, small_t, r, fb, intensity, c);
                         }
                     }
 
+                    // loop every polymesh
                     for (int mesh = 0; mesh < mesh_n; ++mesh){
                         PolyMesh *pm = meshes[mesh];
                         if (meshes[mesh]->triangle_count != 0){
@@ -99,36 +131,110 @@ class Scene {
                                 t = util.hit_triangle_moller_trumbore(triangle, r);
                                 if (t < small_t){
                                     small_t = t;
-                                    fb->plotDepth(i,j,small_t);
+
+                                    // getting the intersection point using t and the normal from surface
+                                    intersection_point = r.on_line(small_t);
+                                    Vertex A = triangle.getVertex0();                                   
+                                    Vertex B = triangle.getVertex1();                                  
+                                    Vertex C = triangle.getVertex2(); 
+                                    Vector3 AB = util.get_vector(A,B);
+                                    Vector3 AC = util.get_vector(A,C);
+                                    intersection_normal = util.cross(AB,AC);
+                                    intersection_normal.normalise();
+                                    util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
                                 }
                             }
                         }
                     }
 
-                    if(small_t == maxfloat) small_t = 0;
-
-
-                    if (small_t == maxfloat){
-                        fb->plotDepth(i, j, 0);
+                    // adding diffuse effect
+                    if (small_t != maxfloat && include_diffuse){
+                        intensity = diffuse(intersection_point, intersection_normal, point_light, intensity);
+                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                    }
+                    // adding specular effect
+                    if (small_t != maxfloat && include_specular){
+                        intensity = specular(intersection_point, intersection_normal, point_light, intensity);
+                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
                     }
 
-                    // if (small_t > 0 && small_t != maxfloat)
-                    // {
-                    //     Vector3 norm = r.on_line(small_t) - Vector3(0,0,0);
-                    //     norm.normalise();
-                    //     //norm = cross(norm, temp_tri.getVertex0().vect(temp_tri.getVertex1()));
-
-                    //     float c1 = (norm.x+1)*0.5;
-                    //     float c2 = (norm.y+1)*0.5;
-                    //     float c3 = (norm.z+1)*0.5;
-
-                    //     fb->plotPixel(i, j, c1, c2, c3);
-                    //     fb->plotDepth(i, j, small_t);
-                    // }
+                    // checking if surface shoul be shadowed
+                    bool shadowed = false;
+                    if (small_t != maxfloat && include_shadow){
+                        shadowed = in_shadow(r, point_light, intersection_point);
+                        if (shadowed){
+                            // if surface is shadowed, reduce intensity to 0.3 and plot
+                            intensity = 0.3;
+                            util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                        }
+                    }
                 }
             }
         }
+
+        bool in_shadow(Ray r, PointLight pl, Vertex intersection_point){
+            Utils util = Utils();
+            // set up
+            float maxfloat = std::numeric_limits<float>::max();
+            float max = maxfloat;
+            int mesh_n = meshes.size();
+            int sp_n = sps.size();
+            float shift_t = 0.03;
+
+            // getting a shadow ray
+            Vector3 vec_for_ray = util.get_vector(intersection_point,pl.get_light_position());
+            vec_for_ray.normalise();
+
+            // shifting the ray away from the sphere slightly
+            Ray shadow_ray = Ray(intersection_point, vec_for_ray);
+            shadow_ray.origin = shadow_ray.on_line(shift_t);
+            
+            // loops every sphere if there is one, plot
+            for (int sp = 0; sp < sp_n; ++sp){
+                Sphere sphere = sps[sp];
+
+                float t2 = util.hit_sphere(sphere, shadow_ray);
+                // if there is intersection and it doesnt face backwards from light
+                if (t2 > 0 && t2 != max){
+                    return true;
+                }
+            }
+            return false;
+        }
         
+        float diffuse(Vertex intersection_point, Vector3 normal, PointLight pl, float intensity){
+            Utils util = Utils();
+            Vector3 light_ray = util.get_vector(intersection_point, pl.get_light_position());
+            light_ray.normalise();
+
+            // get dot product between the normal and light ray
+            float dot = util.dot(normal, light_ray);
+            if (dot < 0){
+                return intensity;
+            }
+            return dot+intensity;
+        }
+
+        float specular(Vertex intersection_point, Vector3 normal, PointLight pl, float intensity){
+            Utils util = Utils();
+            Vector3 light_ray = util.get_vector(pl.get_light_position(), intersection_point);
+            light_ray.normalise();
+
+            // firing reflectved ray using: 𝑟=𝑑−2(𝑑⋅𝑛)𝑛
+            Vector3 reflected_light_ray = light_ray - (normal * (2 * util.dot(light_ray,normal)));
+            reflected_light_ray.normalise();
+
+            Vector3 ray_to_viewer = util.get_vector(intersection_point, util.to_ver(origin));
+            ray_to_viewer.normalise();
+
+            // getting dot product of reflected ray and surface to viewer ray
+            float dot = util.dot(ray_to_viewer, reflected_light_ray);
+            
+            if (dot < 0) return intensity;
+
+            return pow(dot, 15)+intensity;
+        }
+
 
 
 };
