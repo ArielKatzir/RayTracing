@@ -4,16 +4,13 @@
 #include "vertex.h"
 #include "polymesh.h"
 #include "framebuffer.h"
+#include "properties.h"
 #include "utils.h"
 #include "light.h"
-
 #include <vector>
 #include <cmath>
 
 using namespace std;
-
-
-// bug - sphere intersection is going backwards, make sure you only send positive t values --- shadows
 
 #pragma once
 
@@ -86,8 +83,8 @@ class Scene {
                 for (int i = 0; i < img_width; i++){
 
                     // getting new u and v
-                    float u = double(i) / (img_width);
-                    float v = double(j) / (img_height);
+                    float u = float(i) / (img_width);
+                    float v = float(j) / (img_height);
 
                     // getting the ray by adding up vectors from left corner of the view port,
                     // its vector to the horizontall, its vector to its vertical and the origin.
@@ -104,10 +101,14 @@ class Scene {
                     float maxfloat = std::numeric_limits<float>::max();
                     float small_t = maxfloat;
                     float t = 0;
-                    float intensity = 0.2;
-                    Colour c = {0.3,0.5,0.7};
+                    float intensity = 1.0;
                     Vertex intersection_point;
                     Vector3 intersection_normal;
+
+                    // variables used to know which objects the ray intersects with 
+                    bool hit_sphere = false;
+                    bool hit_mesh = false;
+                    int object_indice; // within the lists of objects  
 
                     // loops every sphere.  if ray intersects, plot colour on pixel i,j.
                     for (int sp = 0; sp < sp_n; ++sp){
@@ -118,7 +119,14 @@ class Scene {
                             intersection_point = r.on_line(small_t);
                             intersection_normal = util.get_vector(sphere.getCentre() , intersection_point);
                             intersection_normal.normalise();
-                            util.plot_colour_with_intensity(i, j, small_t, r, fb, intensity, c);
+
+                            // getting mesh properties
+                            float ambient = sphere.getProperty().get_ambient();
+                            Colour c = sphere.getProperty().get_colour();
+
+                            util.plot_colour_with_intensity(i, j, small_t, r, fb, intensity*ambient, c);
+                            hit_sphere = true;
+                            object_indice = sp;
                         }
                     }
 
@@ -141,20 +149,45 @@ class Scene {
                                     Vector3 AC = util.get_vector(A,C);
                                     intersection_normal = util.cross(AB,AC);
                                     intersection_normal.normalise();
+
+                                    // getting mesh properties
+                                    float ambient = pm->getProperty().get_ambient();
+                                    Colour c = pm->getProperty().get_colour();
+
                                     util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                                    hit_sphere = false;
+                                    hit_mesh = true;
+                                    object_indice = mesh;
                                 }
                             }
                         }
                     }
+                    
+                    Properties property;
+
+                    // getting intersected object
+                    if (hit_sphere){
+                        property = sps[object_indice].getProperty();
+                        
+                    }else if(hit_mesh){
+                        PolyMesh *poly = meshes[object_indice];
+                        property = poly->getProperty();
+                    }
+
+                    Colour c = property.get_colour();
+
+                    float diffuse_coef = property.get_diffuse();
+                    float specular_coef = property.get_specular();
+                    float ambient_coef = property.get_ambient();
 
                     // adding diffuse effect
                     if (small_t != maxfloat && include_diffuse){
-                        intensity = diffuse(intersection_point, intersection_normal, point_light, intensity);
+                        intensity = diffuse(intersection_point, intersection_normal, point_light, intensity, diffuse_coef);
                         util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
                     }
                     // adding specular effect
                     if (small_t != maxfloat && include_specular){
-                        intensity = specular(intersection_point, intersection_normal, point_light, intensity);
+                        intensity = specular(intersection_point, intersection_normal, point_light, intensity, specular_coef);
                         util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
                     }
 
@@ -202,7 +235,7 @@ class Scene {
             return false;
         }
         
-        float diffuse(Vertex intersection_point, Vector3 normal, PointLight pl, float intensity){
+        float diffuse(Vertex intersection_point, Vector3 normal, PointLight pl, float intensity, float diffuse){
             Utils util = Utils();
             Vector3 light_ray = util.get_vector(intersection_point, pl.get_light_position());
             light_ray.normalise();
@@ -212,10 +245,10 @@ class Scene {
             if (dot < 0){
                 return intensity;
             }
-            return dot+intensity;
+            return (dot*diffuse)+intensity;
         }
 
-        float specular(Vertex intersection_point, Vector3 normal, PointLight pl, float intensity){
+        float specular(Vertex intersection_point, Vector3 normal, PointLight pl, float intensity, float specular){
             Utils util = Utils();
             Vector3 light_ray = util.get_vector(pl.get_light_position(), intersection_point);
             light_ray.normalise();
@@ -232,7 +265,7 @@ class Scene {
             
             if (dot < 0) return intensity;
 
-            return pow(dot, 15)+intensity;
+            return (pow(dot, 20)*specular)+intensity;
         }
 
 

@@ -18,22 +18,24 @@
 
 using namespace std;
 
-PolyMesh::PolyMesh(char *file)
+PolyMesh::PolyMesh(char *file, Properties p)
 {
   Transform *transform = new Transform();
 
-  this->do_construct(file, transform);
+  this->do_construct(file, transform, p);
 }
 
-PolyMesh::PolyMesh(char *file, Transform *transform)
+PolyMesh::PolyMesh(char *file, Transform *transform, Properties p)
 {
-  this->do_construct(file, transform);
+  this->do_construct(file, transform, p);
 }
 
-void PolyMesh::do_construct(char *file, Transform *transform)
+void PolyMesh::do_construct(char *file, Transform *transform, Properties p)
 {
   ifstream myfile;
   string line;
+
+  property = p;
 
   myfile.open(file);
  
@@ -120,3 +122,5 @@ Vertex extract_vertex_from_str(string s)
   ss >> x >> y >> z;
   return Vertex(x, y, z);
 }
+
+

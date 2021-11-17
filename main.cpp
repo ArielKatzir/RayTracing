@@ -17,8 +17,14 @@
 // - fix stretch if moved - camera issue as problem occures with teapot aend sphere. 
 // - fix small teapot rotation
 // - fix memory issue when trying to add 2 teapots - combine the meshes
+// - use two lights (iterate lights)
+// - add diffuse/specular coefficients for objects and use in equations
+// - use different colours lights
+// - change reflection from bool to colour
+// - add rectangle object
 
-// compile with:  g++ tutorial.cpp framebuffer.cpp polymesh.cpp
+
+// compile with:  g++ main.cpp framebuffer.cpp polymesh.cpp
 // execute with: ./a.out     
 
 
@@ -57,20 +63,20 @@ int main() {
                                             0.0f,0.0f,0.0f,1.0f);
 
     // Read in the  model.
-    PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform);        
+    Properties teapot_property = Properties();
+    PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform, teapot_property);        
 
-    Sphere sp = Sphere(Vertex(-1,0.7,2) , 0.3);
+    Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.2, 1, 0.2, false);
+    Sphere sp = Sphere(Vertex(0,0.3,2) , 0.3, sp_property);
     //Sphere sp2 = Sphere(Vertex(0,-1,4) , 0.5);
 
-
-    scene.add_mesh(pm);
+    // *** Ambient light is assumed to be on always ***
+    //scene.add_mesh(pm);
     scene.add_sphere(sp);
     //scene.add_sphere(sp2);
-
     scene.add_shadows();
     scene.add_diffuse();
     scene.add_specular();
-
 
     scene.render(fb);
 

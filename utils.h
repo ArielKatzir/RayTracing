@@ -5,10 +5,10 @@
 #include "framebuffer.h"
 #include "ray.h"
 #include "my_sphere.h"
+#include "colour.h"
+
 
 #pragma once
-
-typedef float Colour[3];
 
 class Utils {
     public:
@@ -152,9 +152,9 @@ class Utils {
 
         void plot_colour_with_intensity(int i, int j,float t, Ray r, FrameBuffer *fb, float I, Colour c){
                 
-                float red = c[0]*I;
-                float green = c[1]*I;
-                float blue = c[2]*I;
+                float red = c.red*I;
+                float green = c.blue*I;
+                float blue = c.green*I;
 
                 if (red > 1){
                     red = 1;
