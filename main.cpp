@@ -15,13 +15,13 @@
 
 // TDOO
 // - fix stretch if moved - camera issue as problem occures with teapot aend sphere. 
+// - shadow and reflection is only implemented if spheres obstruct the view
 // - fix small teapot rotation
 // - fix memory issue when trying to add 2 teapots - combine the meshes
 // - use two lights (iterate lights)
-// - add diffuse/specular coefficients for objects and use in equations
 // - use different colours lights
 // - change reflection from bool to colour
-// - add rectangle object
+// - fix the rounding error in rectangle
 
 
 // compile with:  g++ main.cpp framebuffer.cpp polymesh.cpp
@@ -31,13 +31,13 @@
 int main() {
 
     // image setting
-    const int img_w = 1024;
-    const int img_h = 512;
+    const int img_w = 2048;
+    const int img_h = 2048;
     
     // camera and viewport settings
-    float viewport_w = 2.0;
+    float viewport_w = 1.0;
     float viewport_h = 1.0;
-    float focal_length = 1.0;
+    float focal_length = 1.9;
 
     // init scene object (also includes camera settings)
     Scene scene = Scene(img_w,img_h,viewport_w,viewport_h,focal_length);
@@ -66,17 +66,24 @@ int main() {
     Properties teapot_property = Properties();
     PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform, teapot_property);        
 
-    Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.2, 1, 0.2, false);
-    Sphere sp = Sphere(Vertex(0,0.3,2) , 0.3, sp_property);
-    //Sphere sp2 = Sphere(Vertex(0,-1,4) , 0.5);
+    Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0.5, false);
+    Sphere sp = Sphere(Vertex(0.8,-0.8,5) , 0.2, sp_property);
+
+    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.5, 0.5, false);
+    Sphere sp2 = Sphere(Vertex(-0.3,0.01,5) , 0.2, sp_property2);
+
+    Properties sp_property3 = Properties(Colour(0.3,0.7,0.9), 0.8, 0.5, 0.9, true);
+    Sphere sp3 = Sphere(Vertex(0.6,-0.4,5.5) , 0.22, sp_property3);
+
 
     // *** Ambient light is assumed to be on always ***
     //scene.add_mesh(pm);
     scene.add_sphere(sp);
-    //scene.add_sphere(sp2);
+    scene.add_sphere(sp2);
+    scene.add_sphere(sp3);
     scene.add_shadows();
-    scene.add_diffuse();
-    scene.add_specular();
+    scene.add_Cornell_box();
+
 
     scene.render(fb);
 

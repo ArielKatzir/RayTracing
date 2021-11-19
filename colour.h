@@ -17,8 +17,8 @@ class Colour {
 
     public:
         float red;
-        float blue;
         float green;
+        float blue;
 
         Colour(float r, float g, float b){
             red = r;

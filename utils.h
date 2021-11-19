@@ -5,7 +5,10 @@
 #include "framebuffer.h"
 #include "ray.h"
 #include "my_sphere.h"
+#include "rectangle.h"
+
 #include "colour.h"
+using namespace std;
 
 
 #pragma once
@@ -43,8 +46,7 @@ class Utils {
                             u.x * v.y - u.y * v.x
             );
         }
-    
-        
+      
         float hit_triangle_plane_algo(Triangle triangle, Ray r){
             // https://courses.cs.washington.edu/courses/cse557/09au/lectures/extras/triangle_intersection.pdf
             Vertex A = triangle.getVertex0();                                   
@@ -60,6 +62,8 @@ class Utils {
             normal.normalise();
 
             float d = -dot(normal,A);
+
+            float maxfloat = std::numeric_limits<float>::max();
 
             // find intersection points.
             float t = (-(dot(normal,r.origin) + d))/(dot(normal,r.direction));
@@ -79,11 +83,10 @@ class Utils {
             if (dot_cross_pa>=0.0 && dot_cross_pb>=0.0 && dot_cross_pc>=0.0){
                 return t;
             }else{
-                return -1.0;
+                return maxfloat;
             }
 
         }
-
         
         float hit_sphere(Sphere s, Ray& r) {
             Utils util = Utils();
@@ -153,8 +156,8 @@ class Utils {
         void plot_colour_with_intensity(int i, int j,float t, Ray r, FrameBuffer *fb, float I, Colour c){
                 
                 float red = c.red*I;
-                float green = c.blue*I;
-                float blue = c.green*I;
+                float green = c.green*I;
+                float blue = c.blue*I;
 
                 if (red > 1){
                     red = 1;
@@ -169,5 +172,24 @@ class Utils {
                 fb->plotPixel(i, j, red, green, blue);
         }
         
-    
+        float hit_rectangle_plane_algo(Rectangle rectangle, Ray r){
+            float maxfloat = std::numeric_limits<float>::max();
+
+            Vector3 normal = rectangle.get_normal();            
+            float d = -dot(normal,rectangle.b);
+
+            // find intersection points.
+            float t = (-(dot(normal,r.origin) + d))/(dot(normal,r.direction));
+
+            // intersection point
+            Vertex p = vector_plus_vertex(r.direction*t,r.origin);
+
+
+            if (p.x<=rectangle.maxx() && p.y<=rectangle.maxy() && p.z<=rectangle.maxz() && p.x>=rectangle.minx() && p.y>=rectangle.miny() && p.z>=rectangle.minz()){
+                return t;
+            }else{
+                return maxfloat;
+            }
+
+        }
     };
