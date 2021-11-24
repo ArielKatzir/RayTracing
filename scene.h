@@ -38,9 +38,9 @@ class Scene {
             _focal_length = focal_length;
 
             include_shadow = false;
-            point_light = PointLight(Vertex(1.8,2,5));
+            point_light = PointLight(Vertex(-1.3,1.4,6.9));
 
-            origin = Vector3(0, 0, 0);
+            origin = Vector3(0, 0, -1);
             horizontal = Vector3(viewport_w, 0, 0);
             vertical = Vector3(0, -viewport_h, 0);
 
@@ -206,14 +206,18 @@ class Scene {
 
                     if (is_reflective){
                         c = reflected(intersection_point, r, intersection_normal, reflection_depth, intensity, point_light);
-                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity*ambient_coef, c);
+                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
                     }
 
-
                     if (small_t != maxfloat){
-                        intensity = get_surface_intensity(intersection_point, intersection_normal, point_light, property);
-                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
-
+                        if (is_reflective){
+                            intensity*=get_surface_intensity(intersection_point, intersection_normal, point_light, property);
+                            util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                        }else{
+                            intensity = get_surface_intensity(intersection_point, intersection_normal, point_light, property);
+                            util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                        }
+                        
                         // checking if surface shoul be shadowed
                         bool shadowed = false;
                         if (include_shadow){
@@ -227,8 +231,7 @@ class Scene {
                     }
                     
                     
-                    
-            
+              
                 }
             }
         }
@@ -256,6 +259,8 @@ class Scene {
             // shifting the ray away from the sphere slightly
             Ray shadow_ray = Ray(intersection_point, vec_for_ray);
             shadow_ray.origin = shadow_ray.on_line(shift_t);
+
+            float t_to_light = shadow_ray.get_t(pl.get_light_position());
             
             // loops every sphere if there is one, plot
             for (int sp = 0; sp < sp_n; ++sp){
@@ -263,7 +268,7 @@ class Scene {
 
                 float t2 = util.hit_sphere(sphere, shadow_ray);
                 // if there is intersection and it doesnt face backwards from light
-                if (t2 > 0 && t2 != max){
+                if (t2 > 0 && t2 != max && t2 < t_to_light){
                     return true;
                 }
             }
@@ -300,7 +305,7 @@ class Scene {
             
             if (dot < 0) return 0;
 
-            return (pow(dot, 20)*property.get_specular());
+            return (pow(dot, 40)*property.get_specular());
         }
 
         // needs to return the intensity and the colour of the reflected object, so always pass intensity=0 as a parameter 
@@ -337,18 +342,22 @@ class Scene {
                     if (depth>1){
                         if (!sphere.getProperty().get_reflective()){
                             intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
+                            bool shadowed_prime = in_shadow(reflected_ray, point_light, new_intersection_point);
+                            if (shadowed_prime) intensity = 0.3;
                             return sphere.getProperty().get_colour();
                         }
                         return reflected(new_intersection_point, reflected_ray, new_intersection_normal, depth - 1, intensity, pl);
                     }else{
                         intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
+                        bool shadowed_prime = in_shadow(reflected_ray, point_light, new_intersection_point);
+                        if (shadowed_prime) intensity = 0.3;
                         return sphere.getProperty().get_colour();
                     }
                     
                 }
             }
 
-            //is there an intersection with a sphere?
+            //is there an intersection with a rectangle?
             for (int rc = 0; rc < rect_n; ++rc){
                 Rectangle rectangle = rects[rc];
                 float t2 = util.hit_rectangle_plane_algo(rectangle, reflected_ray);
@@ -380,39 +389,39 @@ class Scene {
             return Colour(0,0,0);
         }
 
+        // Colour refracted(Vertex intersection_point, Ray r, Vector3 normal, Properties property){
+        //     float n = 1.0;
+        //     float n_prime = property. 
+        // }
+
+
         void add_Cornell_box(){
-            Properties front_wall_property = Properties(Colour(1,1,1), 0.4, 0.5, 0.5, false);
-            Vector3 v_front_wall = Vector3(2.0,0.0,0.0); 
-            Vector3 u_front_wall = Vector3(0.0,2.0,0.0); 
-            Rectangle front_wall = Rectangle(Vertex(-1,-1,6), v_front_wall, u_front_wall, front_wall_property);
+            Properties front_wall_property = Properties(Colour(1,1,1), 0.5, 0.4, 0.2, false);
+            Vector3 v_front_wall = Vector3(3.0,0.0,0.0); 
+            Vector3 u_front_wall = Vector3(0.0,3.0,0.0); 
+            Rectangle front_wall = Rectangle(Vertex(-1.5,-1.5,7), v_front_wall, u_front_wall, front_wall_property);
 
-            Properties back_wall_property = Properties(Colour(0.5,1,0.2), 0.4, 0.5, 0.5, false);
-            Vector3 v_back_wall = Vector3(2.0,0.0,0.0); 
-            Vector3 u_back_wall = Vector3(0.0,2.0,0.0); 
-            Rectangle back_wall = Rectangle(Vertex(-1,-1,4), v_back_wall, u_back_wall, back_wall_property);
+            Properties right_wall_property = Properties(Colour(0,1,0), 0.5, 1, 0.2, false);
+            Vector3 v_right_wall = Vector3(0.0,0.0,-3.0); 
+            Vector3 u_right_wall = Vector3(0.0,3.0,0.0); 
+            Rectangle right_wall = Rectangle(Vertex(1.5,-1.5,7), v_right_wall, u_right_wall, right_wall_property);
 
-            Properties right_wall_property = Properties(Colour(0,1,0), 0.4, 0.5, 0.5, false);
-            Vector3 v_right_wall = Vector3(0.0,0.0,-2); 
-            Vector3 u_right_wall = Vector3(0.0,2.0,0.0); 
-            Rectangle right_wall = Rectangle(Vertex(1,-1,6), v_right_wall, u_right_wall, right_wall_property);
+            Properties left_wall_property = Properties(Colour(1,0,0), 0.5, 1, 0.2, false);
+            Vector3 v_left_wall = Vector3(0.0,0.0,3.0); 
+            Vector3 u_left_wall = Vector3(0.0,3.0,0.0); 
+            Rectangle left_wall = Rectangle(Vertex(-1.5,-1.5,4), v_left_wall, u_left_wall, left_wall_property);
 
-            Properties left_wall_property = Properties(Colour(1,0,0), 0.4, 0.5, 0.5, false);
-            Vector3 v_left_wall = Vector3(0.0,0.0,2.0); 
-            Vector3 u_left_wall = Vector3(0.0,2.0,0.0); 
-            Rectangle left_wall = Rectangle(Vertex(-1,-1,4), v_left_wall, u_left_wall, left_wall_property);
+            Properties floor_property = Properties(Colour(1,1,1), 0.5, 1, 0.2, false);
+            Vector3 v_floor = Vector3(3.0,0.0,0.0); 
+            Vector3 u_floor = Vector3(0.0,0.0,3.0); 
+            Rectangle floor = Rectangle(Vertex(-1.5,-1.5,4), v_floor, u_floor, floor_property);
 
-            Properties floor_property = Properties(Colour(1,1,1), 0.4, 0.5, 0.5, false);
-            Vector3 v_floor = Vector3(2.0,0.0,0.0); 
-            Vector3 u_floor = Vector3(0.0,0.0,2.0); 
-            Rectangle floor = Rectangle(Vertex(-1,-1,4), v_floor, u_floor, floor_property);
-
-            Properties ceiling_property = Properties(Colour(1,1,1), 0, 0.5, 0.5, false);
-            Vector3 v_ceiling= Vector3(2.0,0.0,0.0); 
-            Vector3 u_ceiling = Vector3(0.0,0.0,2.0); 
-            Rectangle ceiling = Rectangle(Vertex(-1,1,4), v_ceiling, u_ceiling, ceiling_property);
+            Properties ceiling_property = Properties(Colour(1,1,1), 0.5, 0.7, 0.2, false);
+            Vector3 v_ceiling= Vector3(3.0,0.0,0.0); 
+            Vector3 u_ceiling = Vector3(0.0,0.0,3.0); 
+            Rectangle ceiling = Rectangle(Vertex(-1.5,1.5,4), v_ceiling, u_ceiling, ceiling_property);
 
             add_rectangle(front_wall);
-            //scene.add_rectangle(back_wall);
             add_rectangle(right_wall);
             add_rectangle(left_wall);
             add_rectangle(floor);

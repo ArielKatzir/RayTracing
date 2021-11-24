@@ -37,7 +37,7 @@ int main() {
     // camera and viewport settings
     float viewport_w = 1.0;
     float viewport_h = 1.0;
-    float focal_length = 1.9;
+    float focal_length = 2;
 
     // init scene object (also includes camera settings)
     Scene scene = Scene(img_w,img_h,viewport_w,viewport_h,focal_length);
@@ -67,13 +67,13 @@ int main() {
     PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform, teapot_property);        
 
     Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0.5, false);
-    Sphere sp = Sphere(Vertex(0.8,-0.8,5) , 0.2, sp_property);
+    Sphere sp = Sphere(Vertex(0.8,-0.6,5.2) , 0.2, sp_property);
 
-    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.5, 0.5, false);
-    Sphere sp2 = Sphere(Vertex(-0.3,0.01,5) , 0.2, sp_property2);
+    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.8, 0.5, false);
+    Sphere sp2 = Sphere(Vertex(0.5,0,5.2) , 0.2, sp_property2);
 
     Properties sp_property3 = Properties(Colour(0.3,0.7,0.9), 0.8, 0.5, 0.9, true);
-    Sphere sp3 = Sphere(Vertex(0.6,-0.4,5.5) , 0.22, sp_property3);
+    Sphere sp3 = Sphere(Vertex(0.3,-0.4,5.5) , 0.22, sp_property3);
 
 
     // *** Ambient light is assumed to be on always ***
