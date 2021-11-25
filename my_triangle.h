@@ -1,9 +1,9 @@
 #include "my_vector.h"
 #include "vertex.h"
 
+
 #pragma once
-class Triangle
-{
+class Triangle{
 
   private:
     Vertex vertex_0_;

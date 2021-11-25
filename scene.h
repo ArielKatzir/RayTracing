@@ -38,7 +38,9 @@ class Scene {
             _viewport_w = viewport_w;
             _focal_length = focal_length;
 
+            // shadows are optionally added from main using add_shadows()
             include_shadow = false;
+
             point_light = PointLight(Vertex(-1.3,1.4,6.9));
 
             origin = Vector3(0, 0, -1);
@@ -55,15 +57,12 @@ class Scene {
         void add_sphere(Sphere s){
             sps.push_back(s);
         }
-
         void add_rectangle(Rectangle r){
             rects.push_back(r);
         }
-
         void add_mesh(PolyMesh *pm){
             meshes.push_back(pm);
         }
-
         void add_shadows(){
             include_shadow = true;
         }
@@ -95,10 +94,11 @@ class Scene {
                     vector_for_ray.normalise();
 
                     // generate ray from origin
-                    Ray r(Vertex(0, 0, -1), vector_for_ray);
+                    Vertex camera_location = util.to_ver(origin);
+                    Ray r(camera_location, vector_for_ray);
                     
                     float maxfloat = std::numeric_limits<float>::max();
-                    float small_t = maxfloat;
+                    float smallest_t = maxfloat;
                     float t = 0;
                     float intensity = 1.0;
                     Vertex intersection_point;
@@ -110,13 +110,20 @@ class Scene {
                     bool hit_rectangle = false;
                     int object_indice; // within the lists of objects  
 
+                    /*
+                    / Finding the closest intersection and the normal between all of the objects in the scene.
+                    / In this section, if an intersection is found, the intensity of the surface will be initiallised 
+                    / to the ambient effect of the surface. With more time, I would add all the objects in the scene 
+                    / to a single <Object> array and iterate through them.
+                    */
+
                     // loops every rectangle.  if ray intersects, plot colour on pixel i,j.
                     for (int rc = 0; rc < rect_n; ++rc){
                         Rectangle rectangle = rects[rc];
                         t = util.hit_rectangle_plane_algo(rectangle, r);
-                        if (t < small_t){
-                            small_t = t;
-                            intersection_point = r.on_line(small_t);
+                        if (t < smallest_t){
+                            smallest_t = t;
+                            intersection_point = r.on_line(smallest_t);
                             intersection_normal = rectangle.get_normal();
                             intersection_normal.normalise();
 
@@ -124,7 +131,7 @@ class Scene {
                             float ambient = rectangle.getProperty().get_ambient();
                             Colour c = rectangle.getProperty().get_colour();
                             intensity*=ambient;
-                            util.plot_colour_with_intensity(i, j, small_t, r, fb, intensity, c);
+                            util.plot_colour_with_intensity(i, j, smallest_t, r, fb, intensity, c);
                             hit_rectangle = true;
                             object_indice = rc;
                         }
@@ -134,9 +141,9 @@ class Scene {
                     for (int sp = 0; sp < sp_n; ++sp){
                         Sphere sphere = sps[sp];
                         t = util.hit_sphere(sphere, r)[0];
-                        if (t < small_t){
-                            small_t = t;
-                            intersection_point = r.on_line(small_t);
+                        if (t < smallest_t){
+                            smallest_t = t;
+                            intersection_point = r.on_line(smallest_t);
                             intersection_normal = util.get_vector(sphere.getCentre() , intersection_point);
                             intersection_normal.normalise();
 
@@ -144,7 +151,7 @@ class Scene {
                             float ambient = sphere.getProperty().get_ambient();
                             Colour c = sphere.getProperty().get_colour();
                             intensity*=ambient;
-                            util.plot_colour_with_intensity(i, j, small_t, r, fb, intensity, c);
+                            util.plot_colour_with_intensity(i, j, smallest_t, r, fb, intensity, c);
                             hit_sphere = true;
                             hit_rectangle = false;
                             object_indice = sp;
@@ -158,11 +165,11 @@ class Scene {
                             for (int tri = 0; tri < pm->triangle_count; tri += 1){
                                 Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]], pm->vertex[pm->triangle[tri][1]], pm->vertex[pm->triangle[tri][2]]);
                                 t = util.hit_triangle_moller_trumbore(triangle, r);
-                                if (t < small_t){
-                                    small_t = t;
+                                if (t < smallest_t){
+                                    smallest_t = t;
 
                                     // getting the intersection point using t and the normal from surface
-                                    intersection_point = r.on_line(small_t);
+                                    intersection_point = r.on_line(smallest_t);
                                     Vertex A = triangle.getVertex0();                                   
                                     Vertex B = triangle.getVertex1();                                  
                                     Vertex C = triangle.getVertex2(); 
@@ -176,7 +183,7 @@ class Scene {
                                     Colour c = pm->getProperty().get_colour();
                                     intensity*=ambient;
 
-                                    util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                                    util.plot_colour_with_intensity(i,j,smallest_t,r,fb, intensity, c);
                                     hit_sphere = false;
                                     hit_mesh = true;
                                     object_indice = mesh;
@@ -184,11 +191,9 @@ class Scene {
                             }
                         }
                     }
-
-                    
                     Properties property;
 
-                    // getting intersected object
+                    // getting the properties of the intersected object
                     if (hit_sphere){
                         property = sps[object_indice].getProperty();
                         
@@ -199,48 +204,52 @@ class Scene {
                         property = rects[object_indice].getProperty();
                     }
 
-                    Colour c = property.get_colour();
+                    Colour colour = property.get_colour();
                     float diffuse_coef = property.get_diffuse();
                     float specular_coef = property.get_specular();
                     float ambient_coef = property.get_ambient();
                     bool is_reflective = property.get_reflective();
                     bool is_refractive = property.get_refractive();
 
-                    if (is_reflective){
-                        c = reflected(intersection_point, r, intersection_normal, reflection_depth, intensity, point_light);
-                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
-                    }
-
-                    if (small_t != maxfloat){
+                    // each intersection method returns a maxfloat if no intersection is found, if this is the case,
+                    // we colour the pixel black
+                    if (smallest_t != maxfloat){
+                        // if intersected object is reflective
                         if (is_reflective){
-                            intensity*=get_surface_intensity(intersection_point, intersection_normal, point_light, property);
-                            util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
-                        }else{
-                            intensity = get_surface_intensity(intersection_point, intersection_normal, point_light, property);
-                            util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                            colour = reflected(intersection_point, r, intersection_normal, reflection_depth, intensity, point_light);
+                            intensity*=phong_shading(intersection_point, intersection_normal, point_light, property);
+                            util.plot_colour_with_intensity(i,j,smallest_t,r,fb, intensity, colour);
+                        
+                        }
+                        // I only implemented refraction on spheres due to lack of time
+                        else if (is_refractive && hit_sphere){
+                            colour = refracted(intersection_point, r, intersection_normal, sps[object_indice], intensity, point_light);
+                            intensity*=phong_shading(intersection_point, intersection_normal, point_light, property);
+                            util.plot_colour_with_intensity(i,j,smallest_t,r,fb, intensity, colour);
+                        }
+                        // if object is neither refractive or reflective plot its intensity using Phong's model
+                        else{
+                            intensity = phong_shading(intersection_point, intersection_normal, point_light, property);
+                            util.plot_colour_with_intensity(i,j,smallest_t,r,fb, intensity, colour);
                         }
                         
-                        // checking if surface shoul be shadowed
+                        // checking if surface should be shadowed 
                         bool shadowed = false;
                         if (include_shadow){
                             shadowed = in_shadow(r, point_light, intersection_point);
                             if (shadowed){
                                 // if surface is shadowed, reduce intensity to 0.3 and plot
                                 intensity = 0.3;
-                                util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                                util.plot_colour_with_intensity(i,j,smallest_t,r,fb, intensity, colour);
                             }
                         }
                     }
-                    if (is_refractive && hit_sphere){
-                        c = refracted(intersection_point, r, intersection_normal, sps[object_indice], intensity, point_light);
-                        intensity*=get_surface_intensity(intersection_point, intersection_normal, point_light, property);
-                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
-                    }
+                    
                 }
             }
         }
  
-        float get_surface_intensity(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property){
+        float phong_shading(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property){
             float intensity = property.get_ambient(); 
             intensity+=diffuse(intersection_point, normal, pl, property);
             intensity+=specular(intersection_point, normal, pl, property);
@@ -344,22 +353,21 @@ class Scene {
                 if (t2 > 0 && t2 != max){
                     if (depth>1){
                         cout << sphere.getProperty().get_refractive() << "\n";
-                        
-
                         if (!sphere.getProperty().get_reflective()){
-                            intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
+                            intensity = phong_shading(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
                             bool shadowed_prime = in_shadow(reflected_ray, point_light, new_intersection_point);
                             if (shadowed_prime) intensity = 0.3;
                             return sphere.getProperty().get_colour();
                         }
+                        // if reflected ray intersects with a reflective object call reflected again on a new object
                         return reflected(new_intersection_point, reflected_ray, new_intersection_normal, depth - 1, intensity, pl);
                     }else{
-                        intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
+                        intensity = phong_shading(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
                         bool shadowed_prime = in_shadow(reflected_ray, point_light, new_intersection_point);
                         if (shadowed_prime) intensity = 0.3;
                         if (sphere.getProperty().get_refractive()){
                                 Colour c = refracted(new_intersection_point, reflected_ray, new_intersection_normal, sphere, intensity, pl);
-                                intensity*=get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
+                                intensity = phong_shading(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
                                 return c;
                         }
                         return sphere.getProperty().get_colour();
@@ -380,26 +388,23 @@ class Scene {
                 if (t2 > 0 && t2 != max){
                     if (depth>1){
                         if (!rectangle.getProperty().get_reflective()){
-                            intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, rectangle.getProperty());
+                            intensity = phong_shading(new_intersection_point, new_intersection_normal, pl, rectangle.getProperty());
                             return rectangle.getProperty().get_colour();
                         }
                         return reflected(new_intersection_point, reflected_ray, new_intersection_normal, depth - 1, intensity, pl);
                     }else{
-                        intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, rectangle.getProperty());
+                        intensity = phong_shading(new_intersection_point, new_intersection_normal, pl, rectangle.getProperty());
                         return rectangle.getProperty().get_colour();
                     }
                     
                 }
             }
-            //BUG HERE: weird with deoth = 2
-            // if reflected ray intersectes with nothing plot white
-
+            // ploy black if no intersection with reflected ray
             return Colour(0,0,0);
         }
         
         // this is only used for spheres -> walls(i just need to show it works), if i wanted it to work on any object,
         // the object would be passed as a parameter, and a second intersection from the inside could easily be calculated.
-
         Colour refracted(Vertex intersection_point, Ray r, Vector3 normal, Sphere s, float &intensity, PointLight pl){
             float shift_t = 0.001;
             float maxfloat = std::numeric_limits<float>::max();
@@ -419,7 +424,7 @@ class Scene {
             Vector3 vector_for_refracted = r_out_perp + r_out_parallel;
             vector_for_refracted.normalise();
             Ray r2 = Ray(intersection_point, vector_for_refracted);
-            //r2.origin = r2.on_line(shift_t);
+            r2.origin = r2.on_line(shift_t);
 
             // second intersection with the sphere
             float t2 = util.hit_sphere(s, r2)[1];
@@ -435,9 +440,7 @@ class Scene {
             Vector3 vector_for_refracted2 = r_out_perp2+ r_out_parallel2;
             vector_for_refracted2.normalise();
             Ray r3 = Ray(intersection_point2, vector_for_refracted2);
-            //r3.origin = r3.on_line(shift_t);
-
-            
+            r3.origin = r3.on_line(shift_t);
 
             //is there an intersection with a rectangle?
             int rect_n = rects.size();
@@ -448,17 +451,10 @@ class Scene {
                 Vector3 final_intersection_normal = rectangle.get_normal();
 
                 if (t_final > 0 && t_final != max){
-                    intensity = get_surface_intensity(final_intersection_point, final_intersection_normal, pl, rectangle.getProperty())+0.03;
+                    intensity = phong_shading(final_intersection_point, final_intersection_normal, pl, rectangle.getProperty())+0.03;
                     return rectangle.getProperty().get_colour();
                 }
             }
-            // cout << "Origin: " << r.get_origin().x << "," << r.get_origin().y << "," << r.get_origin().z << ",  ";
-            // cout << r2.get_origin().x << "," << r2.get_origin().y << "," << r2.get_origin().z << ",  ";
-            // cout << r3.get_origin().x << "," << r3.get_origin().y << "," << r3.get_origin().z << "   t2:" << t2 << "\n";
-            // cout << intersection_normal2.x << "," << intersection_normal2.y << "," << intersection_normal2.z  << "\n";
-            // cout << "Direction: " << r.get_direction().x << "," << r.get_direction().y << "," << r.get_direction().z << ",  ";
-            // cout << r2.get_direction().x << "," << r2.get_direction().y << "," << r2.get_direction().z << ",  ";
-            // cout << r3.get_direction().x << "," << r3.get_direction().y << "," << r3.get_direction().z << "\n\n";
             Colour c = Colour(0,0,0);
             return c;
         }

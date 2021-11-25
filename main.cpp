@@ -76,7 +76,7 @@ int main() {
     Properties sp_property3 = Properties(Colour(0.3,0.5,0.9), 0.8, 0.5, 0.8, true, false);
     Sphere sp3 = Sphere(Vertex(0.3,0,5.5) , 0.22, sp_property3);
 
-    Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0.4, 0.2, 0.8, false, true);
+    Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0.4, 0.5, 0.8, false, true);
     Sphere sp4 = Sphere(Vertex(0.3,-1.07,5.2) , 0.22, sp_property4);
 
     // *** Ambient light is assumed to be on always ***
