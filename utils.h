@@ -6,6 +6,8 @@
 #include "ray.h"
 #include "my_sphere.h"
 #include "rectangle.h"
+#include <vector>
+
 
 #include "colour.h"
 using namespace std;
@@ -88,7 +90,7 @@ class Utils {
 
         }
         
-        float hit_sphere(Sphere s, Ray& r) {
+        std::vector<float> hit_sphere(Sphere s, Ray& r) {
             Utils util = Utils();
 
             Vertex centre = s.getCentre();
@@ -105,13 +107,17 @@ class Utils {
             float b = 2.0 * util.dot(co, r.get_direction());
             float c = util.dot(co, co) - radius*radius;
             float discriminant = b*b - 4*a*c;
+            std::vector<float> intersections;
             // return intersection value if there is an intersection - discriminant is less than 0.
             if (discriminant < 0){
-                return max;
+                intersections.push_back(max);
+                intersections.push_back(max);
+                return intersections;
             }
             else{
-                // return -b- instead of -b+ because we want to closest value.
-                return (-b - sqrt(discriminant))/ (2.0 * a);
+                intersections.push_back( (-b - sqrt(discriminant))/ (2.0 * a));
+                intersections.push_back( (-b + sqrt(discriminant))/ (2.0 * a));
+                return intersections;
             }
         }        
 

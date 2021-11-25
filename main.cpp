@@ -14,6 +14,7 @@
 
 
 // TDOO
+// - make a function that iterates over all of the objects, it should be called in render,reflect and refract
 // - fix stretch if moved - camera issue as problem occures with teapot aend sphere. 
 // - shadow and reflection is only implemented if spheres obstruct the view
 // - fix small teapot rotation
@@ -66,21 +67,24 @@ int main() {
     Properties teapot_property = Properties();
     PolyMesh *pm = new PolyMesh((char *)"teapot.ply", transform, teapot_property);        
 
-    Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0.5, false);
-    Sphere sp = Sphere(Vertex(0.8,-0.6,5.2) , 0.2, sp_property);
+    Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0.5, false, false);
+    Sphere sp = Sphere(Vertex(0.8,0.55,5.2) , 0.2, sp_property);
 
-    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.8, 0.5, false);
-    Sphere sp2 = Sphere(Vertex(0.5,0,5.2) , 0.2, sp_property2);
+    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.8, 0.5, false, false);
+    Sphere sp2 = Sphere(Vertex(1,-0.3,5.3) , 0.2, sp_property2);
 
-    Properties sp_property3 = Properties(Colour(0.3,0.7,0.9), 0.8, 0.5, 0.9, true);
-    Sphere sp3 = Sphere(Vertex(0.3,-0.4,5.5) , 0.22, sp_property3);
+    Properties sp_property3 = Properties(Colour(0.3,0.5,0.9), 0.8, 0.5, 0.8, true, false);
+    Sphere sp3 = Sphere(Vertex(0.3,0,5.5) , 0.22, sp_property3);
 
+    Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0.4, 0.2, 0.8, false, true);
+    Sphere sp4 = Sphere(Vertex(0.3,-1.07,5.2) , 0.22, sp_property4);
 
     // *** Ambient light is assumed to be on always ***
     //scene.add_mesh(pm);
     scene.add_sphere(sp);
     scene.add_sphere(sp2);
     scene.add_sphere(sp3);
+    scene.add_sphere(sp4);
     scene.add_shadows();
     scene.add_Cornell_box();
 

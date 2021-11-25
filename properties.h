@@ -22,14 +22,15 @@ class Properties {
         float specular_coef;
         float ambient_coef;
         bool reflective; 
-        // bool refractive;
+        bool refractive;
 
-        Properties(Colour c, float kd, float ks, float ka, bool kr){
+        Properties(Colour c, float kd, float ks, float ka, bool kr, bool _refractive){
             colour = c;
             diffuse_coef = kd;
             specular_coef = ks;
             ambient_coef = ka;
             reflective = kr;
+            refractive = _refractive;
         }
 
          Properties(){
@@ -38,6 +39,8 @@ class Properties {
             specular_coef = 0;
             ambient_coef = 1;
             reflective = 0;
+            refractive = 0;
+            
         }
 
         float get_diffuse(){
@@ -54,6 +57,10 @@ class Properties {
 
         bool get_reflective(){
             return reflective;
+        }
+
+        bool get_refractive(){
+            return refractive;
         }
 
         Colour get_colour(){

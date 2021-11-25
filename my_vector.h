@@ -41,6 +41,10 @@ class Vector3 {
             return Vector3(x - vector.x, y - vector.y, z - vector.z);
         }
 
+        Vector3 operator+(float f) const{
+            return Vector3(x + f, y + f, z + f);
+        }
+
         Vector3 operator+(const Vector3 &vector) const{
             return Vector3(x + vector.x, y + vector.y, z + vector.z);
         }

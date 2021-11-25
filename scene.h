@@ -8,6 +8,7 @@
 #include "rectangle.h"
 #include "utils.h"
 #include "light.h"
+
 #include <vector>
 #include <cmath>
 
@@ -94,7 +95,7 @@ class Scene {
                     vector_for_ray.normalise();
 
                     // generate ray from origin
-                    Ray r(Vertex(0, 0, 0), vector_for_ray);
+                    Ray r(Vertex(0, 0, -1), vector_for_ray);
                     
                     float maxfloat = std::numeric_limits<float>::max();
                     float small_t = maxfloat;
@@ -132,7 +133,7 @@ class Scene {
                     // loops every sphere.  if ray intersects, plot colour on pixel i,j.
                     for (int sp = 0; sp < sp_n; ++sp){
                         Sphere sphere = sps[sp];
-                        t = util.hit_sphere(sphere, r);
+                        t = util.hit_sphere(sphere, r)[0];
                         if (t < small_t){
                             small_t = t;
                             intersection_point = r.on_line(small_t);
@@ -203,6 +204,7 @@ class Scene {
                     float specular_coef = property.get_specular();
                     float ambient_coef = property.get_ambient();
                     bool is_reflective = property.get_reflective();
+                    bool is_refractive = property.get_refractive();
 
                     if (is_reflective){
                         c = reflected(intersection_point, r, intersection_normal, reflection_depth, intensity, point_light);
@@ -229,9 +231,11 @@ class Scene {
                             }
                         }
                     }
-                    
-                    
-              
+                    if (is_refractive && hit_sphere){
+                        c = refracted(intersection_point, r, intersection_normal, sps[object_indice], intensity, point_light);
+                        intensity*=get_surface_intensity(intersection_point, intersection_normal, point_light, property);
+                        util.plot_colour_with_intensity(i,j,small_t,r,fb, intensity, c);
+                    }
                 }
             }
         }
@@ -250,7 +254,7 @@ class Scene {
             float max = maxfloat;
             int mesh_n = meshes.size();
             int sp_n = sps.size();
-            float shift_t = 0.001;
+            float shift_t = 0.01;
 
             // getting a shadow ray
             Vector3 vec_for_ray = util.get_vector(intersection_point,pl.get_light_position());
@@ -266,7 +270,7 @@ class Scene {
             for (int sp = 0; sp < sp_n; ++sp){
                 Sphere sphere = sps[sp];
 
-                float t2 = util.hit_sphere(sphere, shadow_ray);
+                float t2 = util.hit_sphere(sphere, shadow_ray)[0];
                 // if there is intersection and it doesnt face backwards from light
                 if (t2 > 0 && t2 != max && t2 < t_to_light){
                     return true;
@@ -312,7 +316,6 @@ class Scene {
         // and modify it in the function, and return the colour normally 
         Colour reflected(Vertex intersection_point, Ray r, Vector3 normal, int depth, float &intensity , PointLight pl){
 
-
             Utils util = Utils();
             float shift_t = 0.0001;
             float maxfloat = std::numeric_limits<float>::max();
@@ -331,7 +334,7 @@ class Scene {
             // is there an intersection with a sphere?
             for (int sp = 0; sp < sp_n; ++sp){
                 Sphere sphere = sps[sp];
-                float t2 = util.hit_sphere(sphere, reflected_ray);
+                float t2 = util.hit_sphere(sphere, reflected_ray)[0];
                 Vertex new_intersection_point = reflected_ray.on_line(t2);
                 Vector3 new_intersection_normal = util.get_vector(sphere.getCentre() , new_intersection_point);
                 new_intersection_normal.normalise();
@@ -340,6 +343,9 @@ class Scene {
                 //call reflected again to find a new object to intersect with --depth
                 if (t2 > 0 && t2 != max){
                     if (depth>1){
+                        cout << sphere.getProperty().get_refractive() << "\n";
+                        
+
                         if (!sphere.getProperty().get_reflective()){
                             intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
                             bool shadowed_prime = in_shadow(reflected_ray, point_light, new_intersection_point);
@@ -351,6 +357,11 @@ class Scene {
                         intensity = get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
                         bool shadowed_prime = in_shadow(reflected_ray, point_light, new_intersection_point);
                         if (shadowed_prime) intensity = 0.3;
+                        if (sphere.getProperty().get_refractive()){
+                                Colour c = refracted(new_intersection_point, reflected_ray, new_intersection_normal, sphere, intensity, pl);
+                                intensity*=get_surface_intensity(new_intersection_point, new_intersection_normal, pl, sphere.getProperty());
+                                return c;
+                        }
                         return sphere.getProperty().get_colour();
                     }
                     
@@ -383,40 +394,98 @@ class Scene {
             //BUG HERE: weird with deoth = 2
             // if reflected ray intersectes with nothing plot white
 
-            
-            // BUG HERE: weird with deoth = 2
-            // if reflected ray intersectes with nothing plot white
             return Colour(0,0,0);
         }
+        
+        // this is only used for spheres -> walls(i just need to show it works), if i wanted it to work on any object,
+        // the object would be passed as a parameter, and a second intersection from the inside could easily be calculated.
 
-        // Colour refracted(Vertex intersection_point, Ray r, Vector3 normal, Properties property){
-        //     float n = 1.0;
-        //     float n_prime = property. 
-        // }
+        Colour refracted(Vertex intersection_point, Ray r, Vector3 normal, Sphere s, float &intensity, PointLight pl){
+            float shift_t = 0.001;
+            float maxfloat = std::numeric_limits<float>::max();
+            float max = maxfloat;
+            Utils util = Utils();
+            // gets refractive indexes
+            float n1 = 1.0;
+            float n2 = 1.02; // like water (this is set to default, will only have 1 refracted object)
+            float refractive_ratio_enter = n1/n2;
+            float refractive_ratio_exit = n2/n1;
+            
+            // calculating the first refracted ray by adding up the perpendicular 
+            //and parallel (from normal) rays by cos(theta)
+            float cos_theta = fmin(util.dot(-r.get_direction(), normal), 1.0);
+            Vector3 r_out_perp =  (r.get_direction() + normal*cos_theta)*refractive_ratio_enter;
+            Vector3 r_out_parallel = normal* (-sqrt( fabs (-r_out_perp.length_squared()+1 )));
+            Vector3 vector_for_refracted = r_out_perp + r_out_parallel;
+            vector_for_refracted.normalise();
+            Ray r2 = Ray(intersection_point, vector_for_refracted);
+            //r2.origin = r2.on_line(shift_t);
+
+            // second intersection with the sphere
+            float t2 = util.hit_sphere(s, r2)[1];
+            Vertex intersection_point2 = r2.on_line(t2);
+            Vector3 intersection_normal2 = util.get_vector(intersection_point2, s.getCentre() );
+            intersection_normal2.normalise();
+
+            // calculating the first refracted ray by adding up the perpendicular 
+            //and parallel (from normal) rays by cos(theta)
+            float cos_theta2 = fmin(util.dot(-r2.get_direction(), intersection_normal2), 1.0);
+            Vector3 r_out_perp2 =  (r2.get_direction() + intersection_normal2*cos_theta2)*refractive_ratio_exit;
+            Vector3 r_out_parallel2 = intersection_normal2* (-sqrt( fabs (-r_out_perp2.length_squared()+1 )));
+            Vector3 vector_for_refracted2 = r_out_perp2+ r_out_parallel2;
+            vector_for_refracted2.normalise();
+            Ray r3 = Ray(intersection_point2, vector_for_refracted2);
+            //r3.origin = r3.on_line(shift_t);
+
+            
+
+            //is there an intersection with a rectangle?
+            int rect_n = rects.size();
+            for (int rc = 0; rc < rect_n; ++rc){
+                Rectangle rectangle = rects[rc];
+                float t_final = util.hit_rectangle_plane_algo(rectangle, r3);
+                Vertex final_intersection_point = r3.on_line(t_final);
+                Vector3 final_intersection_normal = rectangle.get_normal();
+
+                if (t_final > 0 && t_final != max){
+                    intensity = get_surface_intensity(final_intersection_point, final_intersection_normal, pl, rectangle.getProperty())+0.03;
+                    return rectangle.getProperty().get_colour();
+                }
+            }
+            // cout << "Origin: " << r.get_origin().x << "," << r.get_origin().y << "," << r.get_origin().z << ",  ";
+            // cout << r2.get_origin().x << "," << r2.get_origin().y << "," << r2.get_origin().z << ",  ";
+            // cout << r3.get_origin().x << "," << r3.get_origin().y << "," << r3.get_origin().z << "   t2:" << t2 << "\n";
+            // cout << intersection_normal2.x << "," << intersection_normal2.y << "," << intersection_normal2.z  << "\n";
+            // cout << "Direction: " << r.get_direction().x << "," << r.get_direction().y << "," << r.get_direction().z << ",  ";
+            // cout << r2.get_direction().x << "," << r2.get_direction().y << "," << r2.get_direction().z << ",  ";
+            // cout << r3.get_direction().x << "," << r3.get_direction().y << "," << r3.get_direction().z << "\n\n";
+            Colour c = Colour(0,0,0);
+            return c;
+        }
 
 
         void add_Cornell_box(){
-            Properties front_wall_property = Properties(Colour(1,1,1), 0.5, 0.4, 0.2, false);
+            Properties front_wall_property = Properties(Colour(1,1,1), 0.5, 0.4, 0.2, false, false);
             Vector3 v_front_wall = Vector3(3.0,0.0,0.0); 
             Vector3 u_front_wall = Vector3(0.0,3.0,0.0); 
             Rectangle front_wall = Rectangle(Vertex(-1.5,-1.5,7), v_front_wall, u_front_wall, front_wall_property);
 
-            Properties right_wall_property = Properties(Colour(0,1,0), 0.5, 1, 0.2, false);
+            Properties right_wall_property = Properties(Colour(0,1,0), 0.5, 1, 0.2, false, false);
             Vector3 v_right_wall = Vector3(0.0,0.0,-3.0); 
             Vector3 u_right_wall = Vector3(0.0,3.0,0.0); 
             Rectangle right_wall = Rectangle(Vertex(1.5,-1.5,7), v_right_wall, u_right_wall, right_wall_property);
 
-            Properties left_wall_property = Properties(Colour(1,0,0), 0.5, 1, 0.2, false);
+            Properties left_wall_property = Properties(Colour(1,0,0), 0.5, 1, 0.2, false, false);
             Vector3 v_left_wall = Vector3(0.0,0.0,3.0); 
             Vector3 u_left_wall = Vector3(0.0,3.0,0.0); 
             Rectangle left_wall = Rectangle(Vertex(-1.5,-1.5,4), v_left_wall, u_left_wall, left_wall_property);
 
-            Properties floor_property = Properties(Colour(1,1,1), 0.5, 1, 0.2, false);
+            Properties floor_property = Properties(Colour(1,1,1), 0.5, 1, 0.2, false, false);
             Vector3 v_floor = Vector3(3.0,0.0,0.0); 
             Vector3 u_floor = Vector3(0.0,0.0,3.0); 
             Rectangle floor = Rectangle(Vertex(-1.5,-1.5,4), v_floor, u_floor, floor_property);
 
-            Properties ceiling_property = Properties(Colour(1,1,1), 0.5, 0.7, 0.2, false);
+            Properties ceiling_property = Properties(Colour(1,1,1), 0.5, 0.7, 0.2, false, false);
             Vector3 v_ceiling= Vector3(3.0,0.0,0.0); 
             Vector3 u_ceiling = Vector3(0.0,0.0,3.0); 
             Rectangle ceiling = Rectangle(Vertex(-1.5,1.5,4), v_ceiling, u_ceiling, ceiling_property);
