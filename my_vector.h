@@ -1,5 +1,5 @@
-#ifndef VECTOR
-#define VECTOR
+#ifndef VECTOR3
+#define VECTOR3
 
 // code inspired by https://raytracing.github.io/books/RayTracingInOneWeekend.html
 
@@ -56,6 +56,7 @@ class Vector3 {
         Vector3 operator/(float multiplier) const{
             return Vector3(x / multiplier, y / multiplier, z / multiplier); 
         }
+
 
         void normalise(){
             float len = (float)sqrt((double)(x*x + y*y + z*z));

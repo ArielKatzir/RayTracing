@@ -24,6 +24,7 @@ class Properties {
         bool reflective; 
         bool refractive;
 
+        // ks+kd<2 must be true
         Properties(Colour c, float kd, float ks, float ka, bool kr, bool _refractive){
             colour = c;
             diffuse_coef = kd;
@@ -31,6 +32,11 @@ class Properties {
             ambient_coef = ka;
             reflective = kr;
             refractive = _refractive;
+
+            if (kr+ka >= 2){
+                std::cerr << "kr + ka of an object dont equal to 2 or more, russian roulette issue." << "\n";
+                exit(-1);
+            }
         }
 
          Properties(){
@@ -40,6 +46,23 @@ class Properties {
             ambient_coef = 1;
             reflective = 0;
             refractive = 0;
+            
+        }
+
+        // for russian roulette to work, p(kd/2) + p(ks/2) + p(absorbed) = 1
+        // coefficients are divided by two for easier input of coefficients between 0 and 1
+        int russian_roulette(){
+            // random number between 0 and 1
+            float p = (float)rand() / RAND_MAX;
+            float pd = diffuse_coef/2;
+            float ps = specular_coef/2;
+            // 0 = send diffuse photon
+            // 1 = send specular
+            // 2 = absorb photon
+            if (p <= pd)return 0;
+            if (p <= ps)return 1;
+            else return 2;
+
             
         }
 
@@ -66,6 +89,8 @@ class Properties {
         Colour get_colour(){
             return colour;
         }
+
+        
 
 
 	

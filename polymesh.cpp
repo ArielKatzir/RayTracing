@@ -37,52 +37,129 @@ void PolyMesh::do_construct(char *file, Transform *transform, Properties p)
 
   property = p;
 
-  myfile.open(file);
- 
-  // Getting vertex count and triangle count  
-  while (vertex_count==0 || triangle_count==0)
+  int count;
+  ifstream meshfile(file);
+
+  cerr << "Opening meshfile: " << file << endl;
+  
+  if (!meshfile.is_open())
   {
-    getline(myfile, line);
-    if (in(line, "vertex")) vertex_count = get_count(line);
-    if (in(line, "face")) triangle_count = get_count(line);
-  }
-  
-  // allocating memory for the vertex list
-  vertex = (Vertex*) malloc(1+vertex_count*sizeof(Vertex));
-
-  // creating counter for while loop
-  int v_counter = 0;
-  
-  // extracting all the vertices 
-  while(v_counter <= vertex_count-1){
-    getline(myfile, line);
-    Vertex v = extract_vertex_from_str(line);
-    transform->apply(v);
-    vertex[v_counter] = v;
-    v_counter++;   
+    cerr << "Problem reading meshfile (not found)." << endl;
+    meshfile.close();
+    exit(-1);
   }
 
-  // freeing memory
-  free(vertex);
+  try {
+    getline(meshfile, line);
+  } catch(ifstream::failure e)
+  {
+    cerr << "Problem reading meshfile (getline failed)." << endl;
+  }
 
-  // allocating memory for triangle
-  triangle = (TriangleIndex*) malloc(triangle_count*sizeof(TriangleIndex));
+  if (line.compare("kcply") != 0)
+  {
+    cerr << "Problem reading meshfile (not kcply). [" << line << "]" << endl;
+    meshfile.close();
+    exit(-1);
+  }
 
-  // extracting all the triangles
-  for (int i = 0; i <= triangle_count; i++){
-    getline(myfile, line);
-    std::stringstream ss(line);
-    int face_num,x,y,z;
-    ss >> face_num >> x >> y >> z;
-    TriangleIndex t = {x, y, z};
+  try {
+    getline(meshfile, line);
+  } catch(ifstream::failure e)
+  {
+    cerr << "Problem reading meshfile (getline failed)." << endl;
+    exit(-1);
+  }
 
-    for (int j=0; j<=2; j++){
-      triangle[i][j] = t[j] -1;
+  istringstream vertex_iss(line);
+  string vertex_element;
+  string vertex_label;
+
+  vertex_iss >> vertex_element >> vertex_label >> vertex_count;
+
+  if ((vertex_element.compare("element") != 0)||(vertex_label.compare("vertex") != 0))
+  {
+    cerr << "Problem reading meshfile (element vertex)."<< endl;
+    meshfile.close();
+    exit(-1);
+  }
+  
+  try {
+    getline(meshfile, line);
+  } catch(ifstream::failure e)
+  {
+    cerr << "Problem reading meshfile (getline failed)." << endl;
+    exit(-1);
+  }
+
+  istringstream triangle_iss(line);
+  string triangle_element;
+  string triangle_label;
+
+  triangle_iss >> triangle_element >> triangle_label >> triangle_count;
+
+  if ((triangle_element.compare("element") != 0)||(triangle_label.compare("face") != 0))
+  {
+    cerr << "Problem reading meshfile (element triangle)."<< endl;
+    meshfile.close();
+    exit(-1);
+  }
+
+  vertex = new Vertex[vertex_count];
+  triangle = new TriangleIndex[triangle_count];
+
+  int i;
+
+  for (i = 0; i < vertex_count; i += 1)
+  {
+    try {
+      getline(meshfile, line);
+    } catch(ifstream::failure e)
+    {
+      cerr << "Problem reading meshfile (getline failed)." << endl;
+      exit(-1);
+    }
+
+    vertex_iss.clear();
+    vertex_iss.str(line);
+
+    vertex_iss >> vertex[i].x >> vertex[i].y >>vertex[i].z;
+
+    vertex[i].w = 1.0f;
+
+    transform->apply(vertex[i]);
+  }
+
+  for (i = 0; i < triangle_count; i += 1)
+  {
+    try {
+      getline(meshfile, line);
+    } catch(ifstream::failure e)
+    {
+      cerr << "Problem reading meshfile (getline failed)." << endl;
+      exit(-1);
+    }
+
+    triangle_iss.clear();
+    triangle_iss.str(line);
+    
+    triangle_iss >> count >> triangle[i][0] >> triangle[i][1] >> triangle[i][2];
+    triangle[i][0] -= 1;
+    triangle[i][1] -= 1;
+    triangle[i][2] -= 1;
+
+    if (count != 3)
+    {
+      cerr << "Problem reading meshfile (non-triangle present)." << endl;
+      exit(-1);
     }
   }
-  // freeing truangle memory
-  free(triangle);
+
+  
+  meshfile.close();
+  cerr << "Meshfile read." << endl;
 }
+
 
 
 

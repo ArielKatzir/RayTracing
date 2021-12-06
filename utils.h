@@ -15,10 +15,36 @@ using namespace std;
 
 #pragma once
 
+struct Point
+    {
+    float data[3];
+
+    Point() {}
+    Point(float x, float y, float z) {
+        data[0] = x;
+        data[1] = y;
+        data[2] = z;
+    }
+
+    float operator [] (int i) const {
+        return data[i];
+    }
+
+    bool operator == (const Point& p) const {
+        return data[0] == p[0] && data[1] == p[1] && data[2] == p[2];
+    }
+
+    friend std::ostream& operator << (std::ostream& s, const Point& p) {
+        return s << '(' << p[0] << ", " << p[1] << ", " << p[2] << ')';
+    }
+    };
+
 class Utils {
     public:
-
-        Utils(){}
+        float max;
+        Utils(){
+            max = std::numeric_limits<float>::max();
+        }
 
         Vector3 get_vector(Vertex a, Vertex b){
             return Vector3(b.x-a.x, b.y-a.y, b.z-a.z);
@@ -196,6 +222,92 @@ class Utils {
             }else{
                 return maxfloat;
             }
+
+        }
+
+
+        void intersect_rectangle(Ray r, float &smallest_t, Vector3 &normal, Vertex &intersection, Properties &property, std::vector<Rectangle> rects){
+            for (int rc = 0; rc < rects.size(); ++rc){
+                Rectangle rectangle = rects[rc];
+                float t = hit_rectangle_plane_algo(rectangle, r);
+                if (t < smallest_t && t > 0 && t!=max){
+                    smallest_t = t;
+                    intersection = r.on_line(smallest_t);
+                    normal = rectangle.get_normal();
+                    normal.normalise();
+                    property = rectangle.getProperty();
+                }
+            }
+
+        }
+
+        void intersect_sphere(Ray r, float &smallest_t, Vector3 &normal, Vertex &intersection, Properties &property, std::vector<Sphere> spheres){
+            for (int sp = 0; sp < spheres.size(); ++sp){
+                Sphere sphere = spheres[sp];
+                // take the closest t
+                float t = hit_sphere(sphere, r)[0];
+                if (t < smallest_t && t > 0 && t!=max){
+                    smallest_t = t;
+                    intersection = r.on_line(smallest_t);
+                    normal = get_vector(sphere.getCentre() , intersection);
+                    normal.normalise();
+                    property = sphere.getProperty();
+                }
+            }
+
+        }   
+
+        void intersect_mesh(Ray r, float &smallest_t, Vector3 &normal, Vertex &intersection, Properties &property, std::vector<PolyMesh*> meshes){
+            // loop every polymesh
+            float t;
+            for (int mesh = 0; mesh < meshes.size(); ++mesh){
+                PolyMesh *pm = meshes[mesh];
+                if (meshes[mesh]->triangle_count != 0){
+                    for (int tri = 0; tri < pm->triangle_count; tri += 1){
+                        Triangle triangle = Triangle(pm->vertex[pm->triangle[tri][0]], pm->vertex[pm->triangle[tri][1]], pm->vertex[pm->triangle[tri][2]]);
+                        t = hit_triangle_moller_trumbore(triangle, r);
+                        if (t < smallest_t && t > 0 && t!=max){
+                            smallest_t = t;
+
+                            // getting the intersection point using t and the normal from surface
+                            intersection = r.on_line(smallest_t);
+                            Vertex A = triangle.getVertex0();                                   
+                            Vertex B = triangle.getVertex1();                                  
+                            Vertex C = triangle.getVertex2(); 
+                            Vector3 AB = get_vector(A,B);
+                            Vector3 AC = get_vector(A,C);
+                            normal = cross(AB,AC);
+                            normal.normalise();
+
+                            property = pm->getProperty();
+                        }
+                    }
+                }
+            }
+        }
+
+
+        Point ver_to_point(Vertex v){
+            return Point(v.x,v.y,v.z);
+        }
+
+        Vertex point_to_ver(Point p){
+            return Vertex(p.data[0], p.data[1],p.data[2]);
+        }
+        
+
+        void intersect_object(  Ray r, 
+                                float &smallest_t, 
+                                Vector3 &normal, 
+                                Vertex &intersection, 
+                                Properties &property, 
+                                std::vector<Rectangle> rects,
+                                std::vector<Sphere> spheres,
+                                std::vector<PolyMesh*> meshes
+                                ){
+            intersect_rectangle(r,smallest_t,normal,intersection,property,rects);
+            intersect_sphere(r,smallest_t,normal,intersection,property,spheres);
+            intersect_mesh(r,smallest_t,normal,intersection,property,meshes);
 
         }
     };

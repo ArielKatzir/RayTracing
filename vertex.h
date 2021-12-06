@@ -8,7 +8,6 @@
  *
  * Do what you like with this code as long as you retain this comment.
  */
-#include "my_vector.h"
 
 class Vertex {
 	public:
@@ -38,9 +37,6 @@ class Vertex {
 			w = 1.0f;
 		}
 		
-		Vector3 vect(Vertex u){
-            return Vector3(x-u.x, y-u.y, z-u.z);
-        }
 
 		Vertex operator-(const Vertex &vertex) const{
             return Vertex(x - vertex.x, y - vertex.y, z - vertex.z);
