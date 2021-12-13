@@ -144,9 +144,9 @@ void PolyMesh::do_construct(char *file, Transform *transform, Properties p)
     triangle_iss.str(line);
     
     triangle_iss >> count >> triangle[i][0] >> triangle[i][1] >> triangle[i][2];
-    triangle[i][0] -= 1;
-    triangle[i][1] -= 1;
-    triangle[i][2] -= 1;
+    // triangle[i][0] -= 1;
+    // triangle[i][1] -= 1;
+    // triangle[i][2] -= 1;
 
     if (count != 3)
     {

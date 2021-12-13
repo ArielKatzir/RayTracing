@@ -185,7 +185,9 @@ class Utils {
                 return maxfloat;
         }
 
-        void plot_colour_with_intensity(int i, int j,float t, Ray r, FrameBuffer *fb, float I, Colour c){
+        void plot_colour_with_intensity(int i, int j, FrameBuffer *fb, float I, Colour c, float &max_intensity){
+
+                //I*=max_intensity;
                 
                 float red = c.red*I;
                 float green = c.green*I;

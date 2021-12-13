@@ -20,7 +20,7 @@ class Photon_Hit {
         int depth;
         Photon photon;
         float intensity, t;
-        int type; // 0 = direct, 1 = shadow, 2 = deflected;
+        int type; // 0 = direct, 1 = shadow;
         Utils util;
 
         Photon_Hit(Photon &p, float t_, int depth_, int type_, float intensity_, Vector3 &normal_){

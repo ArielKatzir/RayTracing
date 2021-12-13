@@ -27,7 +27,7 @@ class PhotonsSet {
     PhotonsSet(PointLight pl){
         origin = pl.get_light_position();
         pointlight = pl;
-        photon_number = 10000;
+        photon_number = 400000;
 
         // creating spherical to cartesian look-up table
         create_lookup_table();
@@ -66,13 +66,30 @@ class PhotonsSet {
     // generating n photons
     void generate_photons(int n){
         srand((unsigned) time(0));
-        int randomNumber_p, randomNumber_t;
+        float randomNumber_z,randomNumber_x,randomNumber_y, random_float,signx,signy,signz;
 
         // loop to generate photons in random directions around the scene
         for (int i = 0; i < n; i++){
-            randomNumber_p = (rand() % 255) + 1;
-            randomNumber_t = (rand() % 255) + 1;
-            Vector3 photon_direction = get_direction_from_table(randomNumber_p,randomNumber_t);
+            signx = ((rand() % 10)+1);
+            signy = ((rand() % 10)+1);
+            signz = ((rand() % 10)+1);
+            
+            random_float = (rand() % 1000);
+            randomNumber_x = (rand() % 100);
+            randomNumber_y = (rand() % 100);
+            randomNumber_z = (rand() % 100);
+
+            if (signx < 6){
+                randomNumber_x*=-1;
+            }
+            if (signy < 6){
+                randomNumber_y*=-1;
+            }
+            if (signz < 6){
+                randomNumber_z*=-1;
+            }
+            //Vector3 photon_direction = get_direction_from_table(randomNumber_p+(random_float/1000),randomNumber_t+(random_float/1000));
+            Vector3 photon_direction = Vector3(randomNumber_x/random_float, randomNumber_y/random_float,randomNumber_z/random_float);
             photon_direction.normalise();
             Photon p = Photon(origin, photon_direction);
             photons.push_back(p);
