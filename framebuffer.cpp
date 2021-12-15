@@ -15,7 +15,7 @@ using namespace std;
 FrameBuffer::FrameBuffer(int w, int h)
 {
   // if image size too large or too small, exit
-  if ((w<0)||(w>2048)||(h<0)||(h>2048))
+  if ((w<0)||(w>6000)||(h<0)||(h>6000))
   {
     exit(-1);
   }

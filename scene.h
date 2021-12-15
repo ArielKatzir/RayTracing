@@ -55,7 +55,7 @@ class Scene {
             include_shadow = false;
 
             // point light location and photons set initialisation
-            point_light = PointLight(Vertex(0.8,1.4,5));
+            point_light = PointLight(Vertex(0,1,5));
             photons_set = PhotonsSet(point_light);
 
             // generating photons in random directions
@@ -74,10 +74,37 @@ class Scene {
             reflection_depth = 1;
             util = Utils();
             max = std::numeric_limits<float>::max();
-            max_intensity = 1.0;
 
         
         } 
+
+        // kd tree config
+        struct CORE{
+
+            typedef Photon_Hit* Item;  // The type we store in the tree.
+            typedef Vertex  Point; // The type we read coordinates from.
+            typedef float  Coord; // The type of individual coordinates.
+
+            static const int DIMENSIONS =  3; // We're in a three-dimensional space.
+            static const int MAX_DEPTH  = 100; // The tree will reach at most ten levels.
+            static const int STORAGE    =  20; // Leaves can hold eight items before splitting.
+
+            // Get the distance of a point along the given axis.
+            static Coord coordinate(const Point& point, int axis){
+                if(axis==0)return point.x;
+                else if(axis==1)return point.y;
+                else if(axis==2)return point.z;
+                cerr << "wrong axis" << "\n";
+
+                return 0;
+            }
+
+            // Get the location of an item
+            static const Vertex& point(const Item& item){
+                return item->point();
+            }
+
+        };
 
 
         void add_sphere(Sphere s){
@@ -101,12 +128,12 @@ class Scene {
             // getting an kd-tree of all of the photon intersection
             KD::Tree<CORE> hits_tree = first_pass_part_one();
 
+
             // iterate every pixel starting from top left
             for (int j = 0; j < img_height; j++)
             {
                 std::cerr << "\rScanlines remaining: " << j << '/' << img_height << std::flush;
                 for (int i = 0; i < img_width; i++){
-    
                     // getting new u and v
                     float u = float(i) / (img_width);
                     float v = float(j) / (img_height);
@@ -125,15 +152,17 @@ class Scene {
                     Ray r(camera_location, vector_for_ray);
                     
                     float smallest_t = max;
-                    float intensity = max_intensity;
+                    float intensity = 1.0;
                     Vertex intersection_point;
                     Vector3 intersection_normal;
 
                     Properties property;
+                    // cerr << "here5" << "\n";
  
                     //Finding the closest intersection and the normal between all of the objects in the scene
                     util.intersect_object(r, smallest_t, intersection_normal, intersection_point, property, rects, sps,meshes);
                     
+                    // cerr << "here4" << "\n";
                     // getting mesh properties
                     Colour colour = property.get_colour();
                     float diffuse_coef = property.get_diffuse();
@@ -144,40 +173,28 @@ class Scene {
 
                     // each intersection method returns a maxfloat if no intersection is found, if this is the case,
                     // we colour the pixel black
+
                     if (smallest_t != max){
                         // if intersected object is reflective
                         if (is_reflective){
-                            colour = reflected(intersection_point, r, intersection_normal, reflection_depth, intensity, point_light);
-                            second_pass(intersection_point, hits_tree, intensity);
-                            intensity+=phong_shading(intersection_point, intersection_normal, point_light, property);
-                            if (intensity > 1){max_intensity = intensity;}
-                            util.plot_colour_with_intensity(i,j,fb, intensity/2, colour, max_intensity);
+                            colour = reflected(intersection_point, r, intersection_normal, reflection_depth, intensity, point_light, hits_tree);
+                            util.plot_colour_with_intensity(i,j,fb, intensity/2, colour);
                         
                         }
                         //I only implemented refraction on spheres due to lack of time
                         else if (is_refractive){
-                            colour = refracted(intersection_point, r, intersection_normal, intensity, point_light);
-                            second_pass(intersection_point, hits_tree, intensity);
-                            intensity+=phong_shading(intersection_point, intersection_normal, point_light, property);
-                            if (intensity > 1){max_intensity = intensity;}
-                            util.plot_colour_with_intensity(i,j,fb, intensity/2, colour, max_intensity);
+                            colour = refracted(intersection_point, r, intersection_normal, intensity, point_light, hits_tree);
+                            util.plot_colour_with_intensity(i,j,fb, intensity/2, colour);
                         }
-                        
                         //if object is neither refractive or reflective plot its intensity using Phong's model
                         else{
-                            second_pass(intersection_point, hits_tree, intensity);
+                            //cerr << c.red << " " << c.green << " " << c.blue << "\n";
+                            second_pass(intersection_point, hits_tree, intensity, colour);
                             intensity+=phong_shading(intersection_point, intersection_normal, point_light, property);
-                            util.plot_colour_with_intensity(i,j,fb, intensity/2, colour, max_intensity);
+                            //cerr << c.red << " " << c.green << " " << c.blue << "\n\n";
+                            util.plot_colour_with_intensity(i,j,fb, intensity/2, colour);
                         }
-
-                        bool shadowed = false;
-                        if (include_shadow){
-                            shadowed = in_shadow(r, point_light, intersection_point);
-                            if (shadowed){
-                                // if surface is shadowed, reduce intensity to 0.3 and plot
-                                //cerr << intensity << "\n";
-                            }
-                        }
+                        // cerr << "here6" << "\n";
                         
                         // checking if surface should be shadowed (pre-photon mapping implementation )
                         // bool shadowed = false;
@@ -192,7 +209,6 @@ class Scene {
                     }
                 }
             }
-            cerr << max_intensity << "\n";
         }
  
         float phong_shading(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property){
@@ -277,7 +293,7 @@ class Scene {
 
         // needs to return the intensity and the colour of the reflected object, so always pass intensity=0 as a parameter 
         // and modify it in the function, and return the colour normally 
-        Colour reflected(Vertex intersection_point, Ray r, Vector3 normal, int depth, float &intensity , PointLight pl){
+        Colour reflected(Vertex intersection_point, Ray r, Vector3 normal, int depth, float &intensity , PointLight pl, KD::Tree<CORE> &hits_tree){
 
             float shift_t = 0.001;
 
@@ -298,18 +314,17 @@ class Scene {
             if (smallest_t > 0 && smallest_t!=max){
                 // depth of 1 stops the recursion
                 if (depth > 1 && property.get_reflective()){
-                    return reflected(new_intersection, reflected_ray, new_normal, depth-1, intensity, pl);
+                    return reflected(new_intersection, reflected_ray, new_normal, depth-1, intensity, pl, hits_tree);
                 }else{
-                    intensity = phong_shading(new_intersection, new_normal, pl, property);
-                    bool shadowed = in_shadow(reflected_ray, pl, new_intersection);
-                    if (shadowed) intensity=0.3;
+                    Colour c = property.get_colour();
+                    second_pass(new_intersection, hits_tree, intensity,c);
+                    intensity+=phong_shading(new_intersection, new_normal, pl, property);
                     if (property.get_refractive()){
-                        Colour c = refracted(new_intersection, reflected_ray, new_normal, intensity, pl);
-                        intensity = phong_shading(new_intersection, new_normal, pl, property);
+                        Colour c = refracted(new_intersection, reflected_ray, new_normal, intensity, pl, hits_tree);
                         return c;
                     }
         
-                    return property.get_colour();
+                    return c;
                 }
             // plot black if no intersection
             }else{
@@ -319,12 +334,12 @@ class Scene {
         
         // this is only used for spheres -> walls(i just need to show it works), if i wanted it to work on any object,
         // the object would be passed as a parameter, and a second intersection from the inside could easily be calculated.
-        Colour refracted(Vertex intersection_point, Ray r, Vector3 normal, float &intensity, PointLight pl){
+        Colour refracted(Vertex intersection_point, Ray r, Vector3 normal, float &intensity, PointLight pl, KD::Tree<CORE> &hits_tree){
             
             float shift_t = 0.001;
             // gets refractive indexes
             float n1 = 1.0;
-            float n2 = 1.03; // like water (this is set to default, will only have 1 refracted object)
+            float n2 = 1.04; // like water (this is set to default, will only have 1 refracted object)
             float refractive_ratio_enter = n1/n2;
             float refractive_ratio_exit = n2/n1;
             float t = max;
@@ -346,12 +361,12 @@ class Scene {
 
             if (t > 0 && t!=max){
                 if (property.get_refractive() == true){
-                    return refracted(new_intersection, r2, new_normal, intensity, pl);
+                    return refracted(new_intersection, r2, new_normal, intensity, pl, hits_tree);
                 }else{
-                    intensity = phong_shading(new_intersection, new_normal, pl, property);
-                    bool shadowed = in_shadow(r2, pl, new_intersection);
-                    if (shadowed) intensity=0.3;
-                    return property.get_colour();
+                    Colour c = property.get_colour();
+                    second_pass(new_intersection, hits_tree, intensity, c);
+                    intensity+=phong_shading(new_intersection, new_normal, pl, property);
+                    return c;
                 }
             }
             
@@ -359,33 +374,7 @@ class Scene {
         }
 
 
-        // kd tree config
-        struct CORE{
-
-            typedef Photon_Hit* Item;  // The type we store in the tree.
-            typedef Vertex  Point; // The type we read coordinates from.
-            typedef float  Coord; // The type of individual coordinates.
-
-            static const int DIMENSIONS =  3; // We're in a three-dimensional space.
-            static const int MAX_DEPTH  = 10; // The tree will reach at most ten levels.
-            static const int STORAGE    =  8; // Leaves can hold eight items before splitting.
-
-            // Get the distance of a point along the given axis.
-            static Coord coordinate(const Point& point, int axis){
-                if(axis==0)return point.x;
-                else if(axis==1)return point.y;
-                else if(axis==2)return point.z;
-                cerr << "wrong axis" << "\n";
-
-                return 0;
-            }
-
-            // Get the location of an item
-            static const Vertex& point(const Item& item){
-                return item->point();
-            }
-
-        };
+        
 
         // first pass of photon mapping (random photons only), returns a kd_tree of photon intersections
         KD::Tree<CORE> first_pass_part_one(){
@@ -443,16 +432,29 @@ class Scene {
 
         }
 
+
+        // in here the average intensity of the photons is combined woth the average colour with colour bleed.
+        // the correct way, would be to average(brdf*intensity) of all of the nearby photons where brdf 
+        // varies between 0-0.4 with an ideal value of 0.32. this average will then be multiplied by pi*r^2.
+        //
         // for a given intersecrion point, plot using photon mapping
-        void second_pass(Vertex &intersection_point, KD::Tree<CORE> &tree, float &total_intensity){
-            std::vector<CORE::Item> nearest_photon_hits = tree.nearest(intersection_point, 70);
+        void second_pass(Vertex &intersection_point, KD::Tree<CORE> &tree, float &total_intensity, Colour &c){
+            // cerr << "here7" << "\n";
+            std::vector<CORE::Item> nearest_photon_hits = tree.find(intersection_point, 10000 , 0.3);
+            // cerr << nearest_photon_hits.size() << "\n";
             CORE::Item temp_hit;
+            Colour photons_c = Colour(1,1,1);
             // for every nearby photon hit
             if (nearest_photon_hits.size() > 1){
                 for (int hit = 0; hit < nearest_photon_hits.size(); hit++){
                     temp_hit = nearest_photon_hits[hit];
+                    if (temp_hit->depth != 0){
+                        util.add(photons_c , temp_hit->photon.colour);
+                    }
                     total_intensity = total_intensity+=temp_hit->photon.energy;
                 }
+                util.mean(photons_c, nearest_photon_hits.size());
+                util.colour_bleed(c , photons_c);
                 total_intensity/=nearest_photon_hits.size();
                 if (total_intensity == INFINITY){
                     total_intensity*=1;
@@ -477,8 +479,6 @@ class Scene {
             for (int rc = 0; rc < rect_n; ++rc){
                 Rectangle rectangle = rects[rc];
                 t = util.hit_rectangle_plane_algo(rectangle, p.photon_ray);
-                
-                
                 // adding all the rectangle intersections into a list
                 if (t != max){
                     add_intersection(p, closest_temp, t, rectangle.getProperty(),direct_object_property, intersections_temp, depth, rectangle.get_normal()); 
@@ -497,7 +497,23 @@ class Scene {
                     normal.normalise();
                     add_intersection(p, closest_temp, t, sphere.getProperty(),direct_object_property, intersections_temp, depth, normal); 
                 }
+
+                // adding the intersection point of the back of the sphere
+                t = util.hit_sphere(sphere, p.photon_ray)[1];
+                // adding all the sphere intersections into the list
+                if (t != max){
+                    intersection = p.photon_ray.on_line(t);
+                    normal = util.get_vector(sphere.getCentre() , intersection);
+                    normal.normalise();
+                    add_intersection(p, closest_temp, t, sphere.getProperty(),direct_object_property, intersections_temp, depth, normal); 
+                }
             }
+
+
+            // photon ray for finding the intersection of the back of the mesh
+            // Vertex reverse_origin = p.photon_ray.on_line(10);
+            // Vector3 reverse_direction = -(p.photon_ray.direction);
+            // Ray reverse = Ray(reverse_origin, reverse_direction);
 
             // mesh intersection
             for (int ms = 0; ms < mesh_n; ++ms){
@@ -516,8 +532,6 @@ class Scene {
                             normal = util.cross(AB,AC);
                             normal.normalise();
                             add_intersection(p, closest_temp, t, pm->getProperty(),direct_object_property, intersections_temp, depth, normal); 
-                            // break here so we dont intersect the dark side of the mesh
-                            break;
                         }
                     }
                 }    
@@ -532,13 +546,14 @@ class Scene {
             intersection = closest_temp.position;
             int roulette_result = direct_object_property.russian_roulette();
 
-            // adding more intersections with depth 1 - recursion
-            if (roulette_result==0){
-                Photon diffuse_p_prime = photons_set.generate_diffuse_photon(closest_temp.normal);
-                fire_photon(diffuse_p_prime, intersections_temp, depth+1);
-                
-            }else if (roulette_result==1){
-                Photon specular_p_prime = photons_set.generate_specular_photon(closest_temp.normal , p, intersection);
+            // photon bouncing using russian roulette and a max depth of 3
+            if (roulette_result==0 && depth < 4){
+                Photon diffuse_p_prime = photons_set.generate_diffuse_photon(closest_temp.normal, direct_object_property);
+                fire_photon(diffuse_p_prime, intersections_temp, depth+1); 
+            }
+
+            else if (roulette_result==1 && depth < 4){
+                Photon specular_p_prime = photons_set.generate_specular_photon(closest_temp.normal , p, intersection, direct_object_property);
                 fire_photon(specular_p_prime, intersections_temp, depth+1);
             }
 
@@ -603,27 +618,27 @@ class Scene {
         }
 
         void add_Cornell_box(){
-            Properties front_wall_property = Properties(Colour(1,1,1), 0.4, 0.6, 0.2, false, false);
+            Properties front_wall_property = Properties(Colour(1,1,1), 0.5, 0.8, 0.1, false, false);
             Vector3 v_front_wall = Vector3(3.0,0.0,0.0); 
             Vector3 u_front_wall = Vector3(0.0,3.0,0.0); 
             Rectangle front_wall = Rectangle(Vertex(-1.5,-1.5,7), v_front_wall, u_front_wall, front_wall_property);
 
-            Properties right_wall_property = Properties(Colour(0,1,0), 0.4, 0.65, 0.2, false, false);
+            Properties right_wall_property = Properties(Colour(0,1,0), 0.3, 0.8, 0.1, false, false);
             Vector3 v_right_wall = Vector3(0.0,0.0,-3.0); 
             Vector3 u_right_wall = Vector3(0.0,3.0,0.0); 
             Rectangle right_wall = Rectangle(Vertex(1.5,-1.5,7), v_right_wall, u_right_wall, right_wall_property);
 
-            Properties left_wall_property = Properties(Colour(1,0,0), 0.4, 0.75, 0.2, false, false);
+            Properties left_wall_property = Properties(Colour(1,0,0), 0.3, 0.8, 0.1, false, false);
             Vector3 v_left_wall = Vector3(0.0,0.0,3.0); 
             Vector3 u_left_wall = Vector3(0.0,3.0,0.0); 
             Rectangle left_wall = Rectangle(Vertex(-1.5,-1.5,4), v_left_wall, u_left_wall, left_wall_property);
 
-            Properties floor_property = Properties(Colour(1,1,1), 0.4, 0.55, 0.2, false, false);
+            Properties floor_property = Properties(Colour(1,1,1), 0.5, 0.8, 0.1, false, false);
             Vector3 v_floor = Vector3(3.0,0.0,0.0); 
             Vector3 u_floor = Vector3(0.0,0.0,3.0); 
             Rectangle floor = Rectangle(Vertex(-1.5,-1.5,4), v_floor, u_floor, floor_property);
 
-            Properties ceiling_property = Properties(Colour(1,1,1), 0.7, 0.6, 0.2, false, false);
+            Properties ceiling_property = Properties(Colour(1,1,1), 0.5, 0.8, 0.1, false, false);
             Vector3 v_ceiling= Vector3(3.0,0.0,0.0); 
             Vector3 u_ceiling = Vector3(0.0,0.0,3.0); 
             Rectangle ceiling = Rectangle(Vertex(-1.5,1.5,4), v_ceiling, u_ceiling, ceiling_property);

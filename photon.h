@@ -17,15 +17,14 @@ class Photon {
     Vector3 direction;
     Ray photon_ray;
     float energy;
-    int x;
+    Colour colour;
 
-    Photon(Vertex origin, Vector3 _direction){
-
-        x = rand();
-
+    Photon(Vertex origin, Vector3 _direction, Colour c){
+        
         direction = _direction;
         photon_ray = Ray(origin,direction);
         energy = 1.0;
+        colour = c;
     }
 
     Photon(){

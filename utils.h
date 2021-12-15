@@ -74,6 +74,38 @@ class Utils {
                             u.x * v.y - u.y * v.x
             );
         }
+
+        void add(Colour &c1 , Colour &c2){
+            c1.red+=c2.red;
+            c1.green+=c2.green;
+            c1.blue+=c2.blue;
+        }
+
+        void mean(Colour &sum, int n){
+            sum.red/=n;
+            sum.green/=n;
+            sum.blue/=n;
+        }
+
+        void multiply(Colour &c1 , float n){
+            c1.red*=n;
+            c1.green*=n;
+            c1.blue*=n;
+        }
+
+        void divide(Colour &c1 , float n){
+            c1.red/=n;
+            c1.green/=n;
+            c1.blue/=n;
+        }
+
+        // in this, take another parameter: intensity to know the exact ration needed.
+        void colour_bleed(Colour &c , Colour bleed){
+            multiply(c , 6);
+            multiply(bleed , 4);
+            add(c,bleed);
+            divide(c,10);
+        }
       
         float hit_triangle_plane_algo(Triangle triangle, Ray r){
             // https://courses.cs.washington.edu/courses/cse557/09au/lectures/extras/triangle_intersection.pdf
@@ -185,9 +217,7 @@ class Utils {
                 return maxfloat;
         }
 
-        void plot_colour_with_intensity(int i, int j, FrameBuffer *fb, float I, Colour c, float &max_intensity){
-
-                //I*=max_intensity;
+        void plot_colour_with_intensity(int i, int j, FrameBuffer *fb, float I, Colour c){
                 
                 float red = c.red*I;
                 float green = c.green*I;
