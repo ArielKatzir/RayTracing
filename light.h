@@ -14,12 +14,6 @@ class PointLight {
             light_location = l;
             total_energy = 1000000; // million is a good amount?
         }
-
-        PointLight(){
-            light_location = Vertex(0,0,0);
-        }
-
-        Vertex get_light_position(){
-            return light_location;
-        }
+        PointLight(){light_location = Vertex(0,0,0);}
+        Vertex get_light_position(){return light_location;}
 };

@@ -27,8 +27,8 @@ int main() {
 
     
     // image setting
-    const int img_w = 2500;
-    const int img_h = 2500;
+    const int img_w = 500;
+    const int img_h = 500;
     
     // camera and viewport settings
     float viewport_w = 1.0;
@@ -69,11 +69,11 @@ int main() {
     Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.8, 0.2, false, false);
     Sphere sp2 = Sphere(Vertex(0,-0.3,5.3) , 0.2, sp_property2);
 
-    Properties sp_property3 = Properties(Colour(0.8,0.0,0.0), 0.8, 0.8, 0.2, true, false);
+    Properties sp_property3 = Properties(Colour(1,0.0,0.0), 0.8, 0.8, 0.2, true, false);
     Sphere sp3 = Sphere(Vertex(-0.7,0.8,5.5) , 0.22, sp_property3);
 
     Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0.8, 0.8, 0.2, false, true);
-    Sphere sp4 = Sphere(Vertex(-1.11,-1.07,5.2) , 0.22, sp_property4);
+    Sphere sp4 = Sphere(Vertex(-1.28,-1.07,5.7) , 0.22, sp_property4);
 
     // *** Ambient light is assumed to be on always ***
     scene.add_mesh(pm);

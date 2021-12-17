@@ -29,7 +29,6 @@ public:
 
 
 	void do_construct(char *file, Transform *transform, Properties p);
-
 	PolyMesh(char *file, Properties p);
 	PolyMesh(char *file, Transform *transform, Properties p);
 	

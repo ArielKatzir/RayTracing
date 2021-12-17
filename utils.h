@@ -101,8 +101,8 @@ class Utils {
 
         // in this, take another parameter: intensity to know the exact ration needed.
         void colour_bleed(Colour &c , Colour bleed){
-            multiply(c , 6);
-            multiply(bleed , 4);
+            multiply(c , 5);
+            multiply(bleed , 5);
             add(c,bleed);
             divide(c,10);
         }
