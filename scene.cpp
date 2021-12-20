@@ -352,15 +352,12 @@ KD::Tree<Scene::CORE> Scene::first_pass_part_one()
     std::vector<Photon_Hit> photon_hits;
 
     // having a list of hits per photon so we could get the direct hit later
-    int roulette_result;
     std::vector<Photon_Hit> intersections_temp;
-    Photon_Hit direct_hit;
-    Properties direct_object_property;
     Photon photon;
 
     for (int p = 0; p < photons_set.photon_number; p++)
     {
-        std::cerr << "\rPhotons remaining: " << p << '/' << photons_set.photon_number << std::flush;
+        //std::cerr << "\rPhotons remaining: " << p << '/' << photons_set.photon_number << std::flush;
         photon = photons_set.photons[p];
 
         // fire photon into scene from light
@@ -450,13 +447,16 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
 
     // recangle intersection
     for (int rc = 0; rc < rect_n; ++rc)
-    {
+    {   
         Rectangle rectangle = rects[rc];
         t = util.hit_rectangle_plane_algo(rectangle, p.photon_ray);
         // adding all the rectangle intersections into a list
         if (t != max)
         {
             add_intersection(p, closest_temp, t, rectangle.getProperty(), direct_object_property, intersections_temp, depth, rectangle.get_normal());
+            if(rectangle.getProperty().get_refractive()){
+                return;
+            }
         }
     }
 
@@ -473,8 +473,10 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
             normal = util.get_vector(sphere.getCentre(), intersection);
             normal.normalise();
             add_intersection(p, closest_temp, t, sphere.getProperty(), direct_object_property, intersections_temp, depth, normal);
+            if(sphere.getProperty().get_refractive()){
+                return;
+            }
         }
-
         // adding the intersection point of the back of the sphere
         t = util.hit_sphere(sphere, p.photon_ray)[1];
         // adding all the sphere intersections into the list
@@ -484,6 +486,9 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
             normal = util.get_vector(sphere.getCentre(), intersection);
             normal.normalise();
             add_intersection(p, closest_temp, t, sphere.getProperty(), direct_object_property, intersections_temp, depth, normal);
+            if(sphere.getProperty().get_refractive()){
+                return;
+            }
         }
     }
 
@@ -513,10 +518,15 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
                     normal = util.cross(AB, AC);
                     normal.normalise();
                     add_intersection(p, closest_temp, t, pm->getProperty(), direct_object_property, intersections_temp, depth, normal);
+                    if(pm->getProperty().get_refractive()){
+                        return;
+                    }
                 }
             }
         }
     }
+
+    
 
     // default constructor for hit has intensity of 7777 to know its empty.
     if (closest_temp.intensity == 7777)
@@ -539,6 +549,8 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
         Photon specular_p_prime = photons_set.generate_specular_photon(closest_temp.normal, p, intersection, direct_object_property);
         fire_photon(specular_p_prime, intersections_temp, depth + 1);
     }
+
+    
 }
 
 void Scene::add_intersection(Photon p,
@@ -559,9 +571,9 @@ void Scene::add_intersection(Photon p,
         if (intersections.size() != 0)
         {
 
-            // finding the previous closest hit and changing it to shadow
             for (int i = 0; i < intersections.size(); i++)
             {
+                // finding the previous closest hit and changing it to shadow
                 if (depth == intersections[i].depth && intersections[i].type == 0)
                 {
                     if (intersections[i].t > t)
@@ -569,7 +581,10 @@ void Scene::add_intersection(Photon p,
                         intersections[i].type = 1;
                         // should add the old hit's property(meaning any hit should have access to the property),
                         // but since they all have the same one its ok.
-                        intersections[i].photon.energy = property.get_ambient();
+                        if(!property.get_refractive()){
+                            intersections[i].photon.energy = property.get_ambient();
+                        }
+                        
                         // adding the new closest hit as direct with diffuse intensity to the list
                         p.energy *= (property.get_diffuse());
                         closest_temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
@@ -598,7 +613,7 @@ void Scene::add_intersection(Photon p,
             return;
         }
 
-        // if not added anything yet, add as the closest item in its depth
+        // if not added anything yet, add as the closest item in its depth (here is the case if its first in its depth)
         p.energy *= (property.diffuse_coef);
         temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
         intersections.push_back(temp);

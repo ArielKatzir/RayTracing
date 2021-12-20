@@ -29,7 +29,7 @@ class PhotonsSet {
     PhotonsSet(PointLight pl){
         origin = pl.get_light_position();
         pointlight = pl;
-        photon_number = 800000;
+        photon_number = 100000;
 
         // creating spherical to cartesian look-up table
         create_lookup_table();

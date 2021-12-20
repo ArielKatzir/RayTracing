@@ -27,8 +27,8 @@ int main() {
 
     
     // image setting
-    const int img_w = 2000;
-    const int img_h = 2000;
+    const int img_w = 200;
+    const int img_h = 200;
     
     // camera and viewport settings
     float viewport_w = 1.0;
