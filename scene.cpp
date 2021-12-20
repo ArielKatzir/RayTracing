@@ -16,7 +16,7 @@ Scene::Scene(int width, int height, float viewport_w, float viewport_h, float fo
     include_shadow = false;
 
     // point light location and photons set initialisation
-    point_light = PointLight(Vertex(0, 1, 4.5));
+    point_light = PointLight(Vertex(0, 1, 5.5));
     photons_set = PhotonsSet(point_light);
 
     // generating photons in random directions
@@ -88,7 +88,7 @@ void Scene::render(FrameBuffer *fb)
             Ray r(camera_location, vector_for_ray);
 
             float smallest_t = max;
-            float intensity = 1.0;
+            float intensity = 1;
             Vertex intersection_point;
             Vector3 intersection_normal;
 
@@ -116,17 +116,13 @@ void Scene::render(FrameBuffer *fb)
                 if (is_reflective & !is_refractive)
                 {
                     colour = reflected(intersection_point, r, intersection_normal, reflection_depth, intensity, point_light, hits_tree);
-                    second_pass(intersection_point, hits_tree, intensity, colour);
-                    intensity += phong_shading(intersection_point, intersection_normal, point_light, property);
-                    util.plot_colour_with_intensity(i, j, fb, intensity / 2, colour);
+                    util.plot_colour_with_intensity(i, j, fb, intensity, colour);
                 }
                 // if refractive
                 else if (is_refractive & !is_reflective)
                 {
                     colour = refracted(intersection_point, r, intersection_normal, intensity, point_light, hits_tree);
-                    second_pass(intersection_point, hits_tree, intensity, colour);
-                    intensity += phong_shading(intersection_point, intersection_normal, point_light, property);
-                    util.plot_colour_with_intensity(i, j, fb, intensity / 2, colour);
+                    util.plot_colour_with_intensity(i, j, fb, intensity, colour);
                 }
 
                 //if object is neither refractive or reflective plot its intensity using Phong's model
@@ -136,7 +132,7 @@ void Scene::render(FrameBuffer *fb)
                     second_pass(intersection_point, hits_tree, intensity, colour);
                     intensity += phong_shading(intersection_point, intersection_normal, point_light, property);
                     //cerr << c.red << " " << c.green << " " << c.blue << "\n\n";
-                    util.plot_colour_with_intensity(i, j, fb, intensity / 2, colour);
+                    util.plot_colour_with_intensity(i, j, fb, intensity, colour);
                 }
                 // cerr << "here6" << "\n";
 
@@ -157,8 +153,8 @@ void Scene::render(FrameBuffer *fb)
 
 float Scene::phong_shading(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property)
 {
-    float intensity = property.get_ambient();
-    intensity += diffuse(intersection_point, normal, pl, property);
+    //float intensity = property.get_ambient(); not needed with photon mapping
+    float intensity = diffuse(intersection_point, normal, pl, property);
     intensity += specular(intersection_point, normal, pl, property);
     return intensity;
 }
@@ -223,7 +219,7 @@ float Scene::diffuse(Vertex intersection_point, Vector3 normal, PointLight pl, P
     {
         return 0;
     }
-    return dot * property.get_diffuse() * 2;
+    return dot * property.get_diffuse();
 }
 
 float Scene::specular(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property)
@@ -244,12 +240,12 @@ float Scene::specular(Vertex intersection_point, Vector3 normal, PointLight pl, 
     if (dot < 0)
         return 0;
 
-    return (pow(dot, 40) * property.get_specular() * 3);
+    return (pow(dot, 80) * property.get_specular());
 }
 
 // needs to return the intensity and the colour of the reflected object, so always pass intensity=0 as a parameter
 // and modify it in the function, and return the colour normally
-Colour Scene::reflected(Vertex &new_intersection, Ray r, Vector3 normal, int depth, float &intensity, PointLight pl, KD::Tree<CORE> &hits_tree)
+Colour Scene::reflected(Vertex new_intersection, Ray r, Vector3 normal, int depth, float &intensity, PointLight pl, KD::Tree<CORE> &hits_tree)
 {
 
     float shift_t = 0.001;
@@ -282,7 +278,8 @@ Colour Scene::reflected(Vertex &new_intersection, Ray r, Vector3 normal, int dep
                 Colour c = refracted(new_intersection, reflected_ray, new_normal, intensity, pl, hits_tree);
                 return c;
             }
-
+            second_pass(new_intersection, hits_tree, intensity, c);
+            intensity += phong_shading(new_intersection, new_normal, point_light, property);
             return c;
         }
         // plot black if no intersection
@@ -301,7 +298,7 @@ Colour Scene::refracted(Vertex &intersection_point, Ray r, Vector3 normal, float
     float shift_t = 0.001;
     // gets refractive indexes
     float n1 = 1.0;
-    float n2 = 1.1; // like water (this is set to default, will only have 1 refracted object)
+    float n2 = 1.5; // (this is set to default, will only have 1 refracted object)
     float refractive_ratio_enter = n1 / n2;
     float refractive_ratio_exit = n2 / n1;
     float t = max;
@@ -330,6 +327,8 @@ Colour Scene::refracted(Vertex &intersection_point, Ray r, Vector3 normal, float
         else
         {
             Colour c = property.get_colour();
+            second_pass(intersection_point, hits_tree, intensity, c);
+            intensity += phong_shading(intersection_point, new_normal, point_light, property);
             return c;
         }
     }
@@ -369,7 +368,7 @@ KD::Tree<Scene::CORE> Scene::first_pass_part_one()
 
         // add all intersections to the full list of photons (use insert to kd tree later)
         for (int hit = 0; hit < intersections_temp.size(); ++hit)
-        {
+        {   
             photon_hits.push_back(intersections_temp[hit]);
         }
         intersections_temp.clear();
@@ -406,7 +405,7 @@ KD::Tree<Scene::CORE> Scene::first_pass_part_one()
 void Scene::second_pass(Vertex &intersection_point, KD::Tree<CORE> &tree, float &total_intensity, Colour &c)
 {
     // cerr << "here7" << "\n";
-    float r = 0.3;
+    float r = 0.2;
     std::vector<CORE::Item> nearest_photon_hits = tree.find(intersection_point, 10000, r);
     // cerr << nearest_photon_hits.size() << "\n";
     CORE::Item temp_hit;
@@ -421,7 +420,7 @@ void Scene::second_pass(Vertex &intersection_point, KD::Tree<CORE> &tree, float 
             {
                 util.add(photons_c, temp_hit->photon.colour);
             }
-            total_intensity = total_intensity += (temp_hit->photon.energy * 3);
+            total_intensity = total_intensity += (temp_hit->photon.energy) * 4; // brdf = 4 for now
         }
         util.mean(photons_c, nearest_photon_hits.size());
         util.colour_bleed(c, photons_c);
@@ -429,7 +428,7 @@ void Scene::second_pass(Vertex &intersection_point, KD::Tree<CORE> &tree, float 
         total_intensity *= (M_PI * r * r);
         if (total_intensity == INFINITY)
         {
-            total_intensity *= 1;
+            total_intensity = 1;
         }
     }
     else if (nearest_photon_hits.size() == 1)
@@ -531,7 +530,7 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
     // photon bouncing using russian roulette and a max depth of 3
     if (roulette_result == 0 && depth < 4)
     {
-        Photon diffuse_p_prime = photons_set.generate_diffuse_photon(closest_temp.normal, direct_object_property);
+        Photon diffuse_p_prime = photons_set.generate_diffuse_photon(closest_temp.normal, p, intersection, direct_object_property);
         fire_photon(diffuse_p_prime, intersections_temp, depth + 1);
     }
 
@@ -572,7 +571,7 @@ void Scene::add_intersection(Photon p,
                         // but since they all have the same one its ok.
                         intersections[i].photon.energy = property.get_ambient();
                         // adding the new closest hit as direct with diffuse intensity to the list
-                        p.energy *= (property.diffuse_coef);
+                        p.energy *= (property.get_diffuse());
                         closest_temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
                         intersections.push_back(closest_temp);
                         closest_property = property;
@@ -580,7 +579,7 @@ void Scene::add_intersection(Photon p,
                     }
                     else
                     {
-                        p.energy *= (property.ambient_coef);
+                        p.energy *= (property.get_ambient());
                         temp = Photon_Hit(p, t, depth, 1, p.energy, normal);
                         intersections.push_back(temp);
                         closest_property = property;
@@ -592,7 +591,7 @@ void Scene::add_intersection(Photon p,
         // if the intersection list is empty, set the new intersection as direct
         if (intersections.size() == 0)
         {
-            p.energy *= (property.diffuse_coef);
+            p.energy *= (property.get_diffuse());
             closest_temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
             intersections.push_back(closest_temp);
             closest_property = property;
@@ -609,27 +608,27 @@ void Scene::add_intersection(Photon p,
 
 void Scene::add_Cornell_box()
 {
-    Properties front_wall_property = Properties(Colour(1, 1, 1), 0.7, 0.8, 0.1, false, false);
+    Properties front_wall_property = Properties(Colour(1, 1, 1), 0.5, 0.5, 0.05, false, false);
     Vector3 v_front_wall = Vector3(3.0, 0.0, 0.0);
     Vector3 u_front_wall = Vector3(0.0, 3.0, 0.0);
     Rectangle front_wall = Rectangle(Vertex(-1.5, -1.5, 7), v_front_wall, u_front_wall, front_wall_property);
 
-    Properties right_wall_property = Properties(Colour(0, 1, 0), 0.3, 0.99, 0.1, false, false);
+    Properties right_wall_property = Properties(Colour(0, 1, 0), 0.5, 1, 0.05, false, false);
     Vector3 v_right_wall = Vector3(0.0, 0.0, -3.0);
     Vector3 u_right_wall = Vector3(0.0, 3.0, 0.0);
     Rectangle right_wall = Rectangle(Vertex(1.5, -1.5, 7), v_right_wall, u_right_wall, right_wall_property);
 
-    Properties left_wall_property = Properties(Colour(1, 0, 0), 0.3, 0.99, 0.1, false, false);
+    Properties left_wall_property = Properties(Colour(1, 0, 0), 0.5, 1, 0.05, false, false);
     Vector3 v_left_wall = Vector3(0.0, 0.0, 3.0);
     Vector3 u_left_wall = Vector3(0.0, 3.0, 0.0);
     Rectangle left_wall = Rectangle(Vertex(-1.5, -1.5, 4), v_left_wall, u_left_wall, left_wall_property);
 
-    Properties floor_property = Properties(Colour(1, 1, 1), 0.7, 0.8, 0.1, false, false);
+    Properties floor_property = Properties(Colour(1, 1, 1), 0.4, 0.8, 0.05, false, false);
     Vector3 v_floor = Vector3(3.0, 0.0, 0.0);
     Vector3 u_floor = Vector3(0.0, 0.0, 3.0);
     Rectangle floor = Rectangle(Vertex(-1.5, -1.5, 4), v_floor, u_floor, floor_property);
 
-    Properties ceiling_property = Properties(Colour(1, 1, 1), 0.7, 0.8, 0.1, false, false);
+    Properties ceiling_property = Properties(Colour(1, 1, 1), 0.9, 0.8, 0.05, false, false);
     Vector3 v_ceiling = Vector3(3.0, 0.0, 0.0);
     Vector3 u_ceiling = Vector3(0.0, 0.0, 3.0);
     Rectangle ceiling = Rectangle(Vertex(-1.5, 1.5, 4), v_ceiling, u_ceiling, ceiling_property);

@@ -27,8 +27,8 @@ int main() {
 
     
     // image setting
-    const int img_w = 500;
-    const int img_h = 500;
+    const int img_w = 2000;
+    const int img_h = 2000;
     
     // camera and viewport settings
     float viewport_w = 1.0;
@@ -53,34 +53,38 @@ int main() {
     // The following transform allows 4D homogeneous coordinates to be transformed. It moves the supplied teapot model to somewhere visible.
     Transform *transform = new Transform(   0.2f, 0.0f, 0.0f, 0.7f,
                                             0.0f, 0.0f, 0.2f, -1.0f,
-                                            0.0f, -0.2f, 0.0f, 6.0f,
+                                            0.0f, -0.2f, 0.0f, 6.5f,
                                             0.0f,0.0f,0.0f,1.0f);
 
     
     
 
     // teapot
-    Properties teapot_property = Properties(Colour(0.9,0.5,0.7), 0.8, 0.8, 0.2, false, false);
+    Properties teapot_property = Properties(Colour(0.9,0.5,0.7), 0.6, 0.8, 0, false, false);
     PolyMesh *pm = new PolyMesh((char *)"teapot_smaller.ply", transform, teapot_property);     
 
-    Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0.2, false, false);
-    Sphere sp = Sphere(Vertex(1.3,1,4.5) , 0.2, sp_property);
+    Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0, false, false);
+    Sphere sp = Sphere(Vertex(1.3,1,6.5) , 0.2, sp_property);
 
-    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.8, 0.2, false, false);
-    Sphere sp2 = Sphere(Vertex(0,-0.3,5.3) , 0.2, sp_property2);
+    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.8, 0, false, false);
+    Sphere sp2 = Sphere(Vertex(-0.3,-0.3,5.3) , 0.2, sp_property2);
 
-    Properties sp_property3 = Properties(Colour(1,0.0,0.0), 0.8, 0.8, 0.2, true, false);
-    Sphere sp3 = Sphere(Vertex(-0.7,0.8,5.5) , 0.22, sp_property3);
+    Properties sp_property3 = Properties(Colour(1,0.0,0.0), 0.8, 0.8, 0, true, false);
+    Sphere sp3 = Sphere(Vertex(-0.7,-1.14,5.9) , 0.36, sp_property3);
 
-    Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0.8, 0.8, 0.2, false, true);
-    Sphere sp4 = Sphere(Vertex(-1.28,-1.07,5.7) , 0.22, sp_property4);
+    Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0.8, 0.8, 0, false, true);
+    Sphere sp4 = Sphere(Vertex(-1.08,0.57,5.7) , 0.22, sp_property4);
+
+    Properties sp_property5 = Properties(Colour(0.3,0.9,0.3), 0.8, 0.8, 0, false, false);
+    Sphere sp5 = Sphere(Vertex(-0.86,-1.38,4.8) , 0.12, sp_property5);
 
     // *** Ambient light is assumed to be on always ***
     scene.add_mesh(pm);
     scene.add_sphere(sp);
-    scene.add_sphere(sp2);
+    // scene.add_sphere(sp2);
     scene.add_sphere(sp3);
     scene.add_sphere(sp4);
+    scene.add_sphere(sp5);
     scene.add_shadows();
     scene.add_Cornell_box();
 

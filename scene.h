@@ -88,7 +88,7 @@ class Scene {
         float phong_shading(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property);
         float diffuse(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property);
         float specular(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property);
-        Colour reflected(Vertex &new_intersection, Ray r, Vector3 normal, int depth, float &intensity , PointLight pl, KD::Tree<CORE> &hits_tree);
+        Colour reflected(Vertex new_intersection, Ray r, Vector3 normal, int depth, float &intensity , PointLight pl, KD::Tree<CORE> &hits_tree);
         Colour refracted(Vertex &intersection_point, Ray r, Vector3 normal, float &intensity, PointLight pl, KD::Tree<CORE> &hits_tree);
         KD::Tree<CORE> first_pass_part_one();
         

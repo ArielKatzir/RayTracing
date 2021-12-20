@@ -100,7 +100,7 @@ class PhotonsSet {
         }
     }
 
-    Photon generate_diffuse_photon(Vector3 normal, Properties prop){
+    Photon generate_diffuse_photon(Vector3 normal , Photon p, Vertex intersection, Properties prop){
             Vector3 photon_direction;
 
             while (true){
@@ -126,10 +126,12 @@ class PhotonsSet {
 
                 // only fire diffuse photon if it
                 float dot_product = util.dot(normal,photon_direction);
-                if (dot_product > 0){
+                if (dot_product > 0){ 
                     Photon p = Photon(origin, photon_direction, prop.get_colour());
                     photons.push_back(p);
                     return p;
+                }else {
+                    return generate_specular_photon(normal, p, intersection, prop);
                 }
             }
     }

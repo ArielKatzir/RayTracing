@@ -54,13 +54,13 @@ class Properties {
         int russian_roulette(){
             // random number between 0 and 1
             float p = (float)rand() / RAND_MAX;
-            float pd = diffuse_coef/2;
-            float ps = specular_coef/2;
+            float pd = specular_coef/2;
+            float ps = diffuse_coef/2;
             // 0 = send diffuse photon
             // 1 = send specular
             // 2 = absorb photon
-            if (p <= pd)return 0;
-            if (p <= ps)return 1;
+            if (p <= pd)return 1;
+            if (p <= ps)return 0;
             else return 2;
 
             
