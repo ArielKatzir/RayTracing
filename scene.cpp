@@ -16,7 +16,7 @@ Scene::Scene(int width, int height, float viewport_w, float viewport_h, float fo
     include_shadow = false;
 
     // point light location and photons set initialisation
-    point_light = PointLight(Vertex(0, 1, 5.5));
+    point_light = PointLight(Vertex(0, 0.5, 5.5));
     photons_set = PhotonsSet(point_light);
 
     // generating photons in random directions
@@ -36,6 +36,7 @@ Scene::Scene(int width, int height, float viewport_w, float viewport_h, float fo
     reflection_depth = 1;
     util = Utils();
     max = std::numeric_limits<float>::max();
+
 }
 
 void Scene::add_sphere(Sphere s)
@@ -62,7 +63,7 @@ void Scene::render(FrameBuffer *fb)
     rect_n = rects.size();
 
     // getting an kd-tree of all of the photon intersection
-    KD::Tree<CORE> hits_tree = first_pass_part_one();
+    KD::Tree<CORE> hits_tree = first_pass_part_two();
 
     // iterate every pixel starting from top left
     for (int j = 0; j < img_height; j++)
@@ -298,7 +299,7 @@ Colour Scene::refracted(Vertex &intersection_point, Ray r, Vector3 normal, float
     float shift_t = 0.001;
     // gets refractive indexes
     float n1 = 1.0;
-    float n2 = 1.5; // (this is set to default, will only have 1 refracted object)
+    float n2 = 1.7; // (this is set to default, will only have 1 refracted object)
     float refractive_ratio_enter = n1 / n2;
     float refractive_ratio_exit = n2 / n1;
     float t = max;
@@ -337,7 +338,7 @@ Colour Scene::refracted(Vertex &intersection_point, Ray r, Vector3 normal, float
 }
 
 // first pass of photon mapping (random photons only), returns a kd_tree of photon intersections
-KD::Tree<Scene::CORE> Scene::first_pass_part_one()
+KD::Tree<Scene::CORE> Scene::first_pass_part_two()
 {
     /* psudocode:
             / for every photon generated:
@@ -351,17 +352,32 @@ KD::Tree<Scene::CORE> Scene::first_pass_part_one()
     // full list of photon intersections
     std::vector<Photon_Hit> photon_hits;
 
+    first_pass_part_one(photons_set.photons, rects,sps);
+    photons_set.photon_number = photons_set.photons.size();
+
+
     // having a list of hits per photon so we could get the direct hit later
     std::vector<Photon_Hit> intersections_temp;
     Photon photon;
 
     for (int p = 0; p < photons_set.photon_number; p++)
     {
-        //std::cerr << "\rPhotons remaining: " << p << '/' << photons_set.photon_number << std::flush;
+        std::cerr << "\rPhotons remaining: " << p << '/' << photons_set.photon_number << std::flush;
         photon = photons_set.photons[p];
 
         // fire photon into scene from light
         fire_photon(photon, intersections_temp, 0);
+
+        util.remove_after_refraction(intersections_temp);
+        for (int i = 0; i<intersections_temp.size(); i++){
+            if (intersections_temp[i].depth == 0 && intersections_temp[i].type == 2){
+                Photon ref = generate_refracted_photon(intersections_temp[i].normal, intersections_temp[i].photon, intersections_temp[i].position);
+                intersections_temp.erase(intersections_temp.begin() + i);
+                fire_photon(ref, intersections_temp, 0);
+                break;
+            }
+        }
+        util.convert_after_refraction(intersections_temp);
 
         // add all intersections to the full list of photons (use insert to kd tree later)
         for (int hit = 0; hit < intersections_temp.size(); ++hit)
@@ -394,6 +410,31 @@ KD::Tree<Scene::CORE> Scene::first_pass_part_one()
     return kdtree;
 }
 
+
+// photons generated towards caustics
+void Scene::first_pass_part_one(std::vector<Photon> &photons, std::vector<Rectangle> &rects, std::vector<Sphere> &spheres){
+    // value to determine how far from the centre of an object photons should be sent
+    // this adds the issue of polymeshes that dont have a point of reference and therefore are yet to be included
+    float direction_error = 0.5;
+    int photons_per_objects = 50000;
+
+    for (int r = 0; r < rects.size(); r++){
+        if (rects[r].getProperty().get_refractive()){
+            photons_set.generate_photons_to_object(photons, rects[r].centre, direction_error, photons_per_objects, point_light);
+        }
+    }
+
+    for (int s = 0; s < spheres.size(); s++){
+        if (spheres[s].getProperty().get_refractive()){
+
+            photons_set.generate_photons_to_object(photons, spheres[s].getCentre(), direction_error, photons_per_objects, point_light);
+        }
+    }
+}
+
+
+
+
 // in here the average intensity of the photons is combined woth the average colour with colour bleed.
 // the correct way, would be to average(brdf*intensity) of all of the nearby photons where brdf
 // varies between 0-0.4 with an ideal value of 0.32. this average will then be multiplied by pi*r^2.
@@ -401,10 +442,8 @@ KD::Tree<Scene::CORE> Scene::first_pass_part_one()
 // for a given intersecrion point, plot using photon mapping
 void Scene::second_pass(Vertex &intersection_point, KD::Tree<CORE> &tree, float &total_intensity, Colour &c)
 {
-    // cerr << "here7" << "\n";
-    float r = 0.2;
+    float r = 0.22;
     std::vector<CORE::Item> nearest_photon_hits = tree.find(intersection_point, 10000, r);
-    // cerr << nearest_photon_hits.size() << "\n";
     CORE::Item temp_hit;
     Colour photons_c = Colour(1, 1, 1);
     // for every nearby photon hit
@@ -417,7 +456,7 @@ void Scene::second_pass(Vertex &intersection_point, KD::Tree<CORE> &tree, float 
             {
                 util.add(photons_c, temp_hit->photon.colour);
             }
-            total_intensity = total_intensity += (temp_hit->photon.energy) * 4; // brdf = 4 for now
+            total_intensity = total_intensity += (temp_hit->photon.energy) * 6; // brdf = 4 for now
         }
         util.mean(photons_c, nearest_photon_hits.size());
         util.colour_bleed(c, photons_c);
@@ -454,9 +493,6 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
         if (t != max)
         {
             add_intersection(p, closest_temp, t, rectangle.getProperty(), direct_object_property, intersections_temp, depth, rectangle.get_normal());
-            if(rectangle.getProperty().get_refractive()){
-                return;
-            }
         }
     }
 
@@ -473,9 +509,6 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
             normal = util.get_vector(sphere.getCentre(), intersection);
             normal.normalise();
             add_intersection(p, closest_temp, t, sphere.getProperty(), direct_object_property, intersections_temp, depth, normal);
-            if(sphere.getProperty().get_refractive()){
-                return;
-            }
         }
         // adding the intersection point of the back of the sphere
         t = util.hit_sphere(sphere, p.photon_ray)[1];
@@ -486,9 +519,6 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
             normal = util.get_vector(sphere.getCentre(), intersection);
             normal.normalise();
             add_intersection(p, closest_temp, t, sphere.getProperty(), direct_object_property, intersections_temp, depth, normal);
-            if(sphere.getProperty().get_refractive()){
-                return;
-            }
         }
     }
 
@@ -518,9 +548,6 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
                     normal = util.cross(AB, AC);
                     normal.normalise();
                     add_intersection(p, closest_temp, t, pm->getProperty(), direct_object_property, intersections_temp, depth, normal);
-                    if(pm->getProperty().get_refractive()){
-                        return;
-                    }
                 }
             }
         }
@@ -553,14 +580,7 @@ void Scene::fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, i
     
 }
 
-void Scene::add_intersection(Photon p,
-                      Photon_Hit &closest_temp,
-                      float t,
-                      Properties property,
-                      Properties &closest_property,
-                      std::vector<Photon_Hit> &intersections,
-                      int depth,
-                      Vector3 normal)
+void Scene::add_intersection(Photon p, Photon_Hit &closest_temp, float t, Properties property, Properties &closest_property, std::vector<Photon_Hit> &intersections, int depth, Vector3 normal)
 {
     // checks to see if there is an intersection
     Photon_Hit temp;
@@ -583,11 +603,14 @@ void Scene::add_intersection(Photon p,
                         // but since they all have the same one its ok.
                         if(!property.get_refractive()){
                             intersections[i].photon.energy = property.get_ambient();
+                            p.energy *= (property.get_diffuse());
+                            closest_temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
+                        }else{
+                            p.energy *= (property.get_diffuse());
+                            closest_temp = Photon_Hit(p, t, depth, 2, p.energy, normal);
                         }
                         
                         // adding the new closest hit as direct with diffuse intensity to the list
-                        p.energy *= (property.get_diffuse());
-                        closest_temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
                         intersections.push_back(closest_temp);
                         closest_property = property;
                         return;
@@ -605,9 +628,13 @@ void Scene::add_intersection(Photon p,
         }
         // if the intersection list is empty, set the new intersection as direct
         if (intersections.size() == 0)
-        {
+        {   
             p.energy *= (property.get_diffuse());
-            closest_temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
+            if(!property.get_refractive()){
+                closest_temp = Photon_Hit(p, t, depth, 0, p.energy, normal);
+            }else{
+                closest_temp = Photon_Hit(p, t, depth, 2, p.energy, normal);
+            }
             intersections.push_back(closest_temp);
             closest_property = property;
             return;
@@ -619,6 +646,28 @@ void Scene::add_intersection(Photon p,
         intersections.push_back(temp);
         closest_property = property;
     }
+}
+
+Photon Scene::generate_refracted_photon(Vector3 normal , Photon p, Vertex intersection){
+    float shift_t = 0.001;
+    // gets refractive indexes
+    float n1 = 1.0;
+    float n2 = 1.5; // (this is set to default)
+    float refractive_ratio_enter = n1 / n2;
+    float refractive_ratio_exit = n2 / n1;
+    float t = max;
+    Properties property;
+    Vector3 new_normal;
+
+    // calculating the first refracted ray by adding up the perpendicular
+    // and parallel (from normal) rays by cos(theta)
+    float cos_theta = fmin(util.dot(-p.photon_ray.get_direction(), normal), 1.0);
+    Vector3 r_out_perp = (p.photon_ray.get_direction() + normal * cos_theta) * refractive_ratio_enter;
+    Vector3 r_out_parallel = normal * (-sqrt(fabs(-r_out_perp.length_squared() + 1)));
+    Vector3 vector_for_refracted = r_out_perp + r_out_parallel;
+    vector_for_refracted.normalise();
+    Photon p2 = Photon(intersection, vector_for_refracted, p.colour);
+    return p2;
 }
 
 void Scene::add_Cornell_box()

@@ -59,21 +59,21 @@ int main() {
     
     
 
-    // teapot
+    /// teapot
     Properties teapot_property = Properties(Colour(0.9,0.5,0.7), 0.6, 0.8, 0, false, false);
     PolyMesh *pm = new PolyMesh((char *)"teapot_smaller.ply", transform, teapot_property);     
 
     Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0, false, false);
     Sphere sp = Sphere(Vertex(1.3,1,6.5) , 0.2, sp_property);
 
-    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0.8, 0.8, 0, false, false);
-    Sphere sp2 = Sphere(Vertex(-0.3,-0.3,5.3) , 0.2, sp_property2);
+    Properties sp_property2 = Properties(Colour(0.6,0.1,0.9), 0, 0, 0, false, true);
+    Sphere sp2 = Sphere(Vertex(0.2,-1.3,5.2) , 0.2, sp_property2);
 
     Properties sp_property3 = Properties(Colour(1,0.0,0.0), 0.8, 0.8, 0, true, false);
     Sphere sp3 = Sphere(Vertex(-0.7,-1.14,5.9) , 0.36, sp_property3);
 
-    Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0.8, 0.8, 0, false, true);
-    Sphere sp4 = Sphere(Vertex(-1.08,0.57,5.7) , 0.22, sp_property4);
+    Properties sp_property4 = Properties(Colour(0.8,0.0,0.0), 0, 0, 0, false, true);
+    Sphere sp4 = Sphere(Vertex(-0.54,0.55,5.7) , 0.22, sp_property4);
 
     Properties sp_property5 = Properties(Colour(0.3,0.9,0.3), 0.8, 0.8, 0, false, false);
     Sphere sp5 = Sphere(Vertex(-0.86,-1.38,4.8) , 0.12, sp_property5);
@@ -81,7 +81,7 @@ int main() {
     // *** Ambient light is assumed to be on always ***
     scene.add_mesh(pm);
     scene.add_sphere(sp);
-    // scene.add_sphere(sp2);
+    scene.add_sphere(sp2);
     scene.add_sphere(sp3);
     scene.add_sphere(sp4);
     scene.add_sphere(sp5);

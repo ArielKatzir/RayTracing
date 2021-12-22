@@ -3,7 +3,6 @@
 #include "ray.h"
 #include "light.h"
 #include "photon.h"
-#include "util.h"
 
 
 #include <vector>
@@ -21,7 +20,6 @@ class Photon_Hit {
         Photon photon;
         float intensity, t;
         int type; // 0 = direct, 1 = shadow;
-        Utils util;
 
         Photon_Hit(Photon &p, float t_, int depth_, int type_, float intensity_, Vector3 &normal_){
             photon = p;
@@ -31,7 +29,6 @@ class Photon_Hit {
             type = type_;
             intensity = intensity_;
             normal = normal_;
-            util = Utils();
         }
 
         Photon_Hit(){

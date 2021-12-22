@@ -12,7 +12,7 @@ class Rectangle
     Rectangle(){}
     Properties property;
     Vector3 v,u;
-    Vertex rect_origin,b,c,d;
+    Vertex rect_origin,b,c,d,centre;
 
     Rectangle(Vertex o, Vector3 vec, Vector3 vec2, Properties prop){
         property = prop;
@@ -26,6 +26,8 @@ class Rectangle
         b = from_origin(v);
         c = from_origin(v+u);
         d = from_origin(u);
+        centre = Vertex(o.x+vec.x+vec2.x, o.y+vec.y+vec2.y, o.z+vec.z+vec2.z);
+
 
     }
 

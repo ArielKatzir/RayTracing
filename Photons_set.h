@@ -100,6 +100,42 @@ class PhotonsSet {
         }
     }
 
+    void generate_photons_to_object(std::vector<Photon> &photons, Vertex centre, float error, int amount, PointLight pl){
+        Vector3 photon_direction;
+        int c = 0;
+        while (c < amount){
+            signx = ((rand() % 10)+1);
+            signy = ((rand() % 10)+1);
+            signz = ((rand() % 10)+1);
+            random_float = (rand() % 1000);
+            randomNumber_x = (rand() % 1000);
+            randomNumber_y = (rand() % 1000);
+            randomNumber_z = (rand() % 1000);
+
+            if (signx < 6){
+                randomNumber_x*=-1;
+            }
+            if (signy < 6){
+                randomNumber_y*=-1;
+            }
+            if (signz < 6){
+                randomNumber_z*=-1;
+            }           
+            photon_direction = Vector3(randomNumber_x/random_float, randomNumber_y/random_float,randomNumber_z/random_float);
+            photon_direction.normalise();
+
+            Vertex endpoint = Vertex(centre.x+photon_direction.x*error, centre.y+photon_direction.y*error, centre.z+photon_direction.z*error);
+            // cerr << endpoint.x << " " << endpoint.y << " " << endpoint.z << "\n";
+            Vector3 for_photon = util.get_vector(centre, endpoint);
+            //cerr << for_photon.x << " " << for_photon.y << " " << for_photon.z << "\n";
+
+            Photon p = Photon(pl.get_light_position(), photon_direction, Colour(1,1,1));
+            photons.push_back(p);
+            c++;
+            }
+    }
+
+
     Photon generate_diffuse_photon(Vector3 normal , Photon p, Vertex intersection, Properties prop){
             Vector3 photon_direction;
 

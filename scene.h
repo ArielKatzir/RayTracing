@@ -84,13 +84,16 @@ class Scene {
         void fire_photon(Photon p, std::vector<Photon_Hit> &intersections_temp, int depth);
         void add_intersection(Photon p,Photon_Hit &closest_temp,float t,Properties property,Properties &closest_property,std::vector<Photon_Hit> &intersections,int depth, Vector3 normal);
         void add_Cornell_box();
+        void first_pass_part_one(std::vector<Photon> &photons, std::vector<Rectangle> &rects, std::vector<Sphere> &spheres);
         bool in_shadow(Ray r, PointLight pl, Vertex intersection_point);
         float phong_shading(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property);
         float diffuse(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property);
         float specular(Vertex intersection_point, Vector3 normal, PointLight pl, Properties property);
         Colour reflected(Vertex new_intersection, Ray r, Vector3 normal, int depth, float &intensity , PointLight pl, KD::Tree<CORE> &hits_tree);
         Colour refracted(Vertex &intersection_point, Ray r, Vector3 normal, float &intensity, PointLight pl, KD::Tree<CORE> &hits_tree);
-        KD::Tree<CORE> first_pass_part_one();
+        KD::Tree<CORE> first_pass_part_two();
+        Photon generate_refracted_photon(Vector3 normal , Photon p, Vertex intersection);
+
         
 };
 

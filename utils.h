@@ -5,6 +5,8 @@
 #include "framebuffer.h"
 #include "ray.h"
 #include "my_sphere.h"
+#include "photon_hit.h"
+
 #include "rectangle.h"
 #include <vector>
 
@@ -317,6 +319,35 @@ class Utils {
                 }
             }
         }
+
+        // removes all of the recorded intersections after hitting a 
+        // refractive object since these intersections were not refracted when hit the object
+        void remove_after_refraction(std::vector<Photon_Hit> &hits){
+            for (int i = 0; i < hits.size(); i++){
+                if(hits[i].type == 2){
+                    for (int j = 0; j < hits.size(); j++){
+                        if (hits[j].depth == hits[i].depth && hits[j].t > hits[i].t){
+                            hits.erase(hits.begin() + j);
+                        }
+                    }
+                }
+            }
+        }
+
+        // converts all of the recorded intersections after hitting a 
+        // refractive object to lit from shadow
+        void convert_after_refraction(std::vector<Photon_Hit> &hits){
+            for (int i = 0; i < hits.size(); i++){
+                if(hits[i].type == 2){
+                    for (int j = 0; j < hits.size(); j++){
+                        if (hits[j].depth == hits[i].depth && hits[j].t > hits[i].t){
+                            hits[j].photon.energy = 1.2;
+                        }
+                    }
+                }
+            }
+        }
+    
 
 
         Point ver_to_point(Vertex v){
