@@ -1,12 +1,14 @@
+#ifndef PHOTON_H
+#define PHOTON_H
+
+
+
 #include "my_vector.h"
 #include "vertex.h"
 #include "ray.h"
-#include "light.h"
 #include <vector>
 #include <cmath>
-#include "light.h"
-
-
+#include "colour.h"
 
 using namespace std;
 
@@ -31,3 +33,5 @@ class Photon {
 
     }
 };
+
+#endif

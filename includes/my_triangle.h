@@ -1,4 +1,6 @@
-#include "my_vector.h"
+#ifndef TRIANGLE_H
+#define TRIANGLE_H
+
 #include "vertex.h"
 
 
@@ -29,3 +31,5 @@ class Triangle{
     Vertex getVertex2() const { return vertex_2_; }
 
 };
+
+#endif

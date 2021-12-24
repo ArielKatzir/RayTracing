@@ -1,9 +1,11 @@
+#ifndef RECTANGLE_H
+#define RECTANGLE_H
+
+
 #include "my_vector.h"
 #include "vertex.h"
 #include "properties.h"
 using namespace std;
-
-
 
 #pragma once
 class Rectangle 
@@ -89,3 +91,6 @@ class Rectangle
         } 
     }  
 };
+
+
+#endif

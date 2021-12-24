@@ -1,3 +1,7 @@
+#ifndef SCENE_H
+#define SCENE_H
+
+
 #include "my_vector.h"
 #include "vertex.h"
 #include "my_sphere.h"
@@ -9,7 +13,7 @@
 #include "utils.h"
 #include "light.h"
 #include "photon.h"
-#include "Photons_set.h"
+#include "photon_set.h"
 #include "photon_hit.h"
 #include "kd-master/src/tree.h"
 
@@ -96,6 +100,9 @@ class Scene {
 
         
 };
+
+
+#endif
 
 
 

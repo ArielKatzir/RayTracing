@@ -1,16 +1,8 @@
-/***************************************************************************
- *
- * krt - Kens Raytracer - Coursework Edition. (C) Copyright 1997-2019.
- *
- * Do what you like with this code as long as you retain this comment.
- */
-
-// Ray is a class to store and maniplulate 3D rays.
+#ifndef PROPERTIES_H
+#define PROPERTIES_H
 
 #pragma once
 
-#include "vertex.h"
-#include "my_vector.h"
 #include "colour.h"
 
 
@@ -90,8 +82,6 @@ class Properties {
             return colour;
         }
 
-        
-
-
-	
 };
+
+#endif

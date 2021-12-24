@@ -1,9 +1,10 @@
 /***************************************************************************
  *
  * krt - Kens Raytracer - Coursework Edition. (C) Copyright 1997-2019.
- *
- * Do what you like with this code as long as you retain this comment.
  */
+
+#ifndef POLYMESH_H
+#define POLYMESH_H
 
 #pragma once
 
@@ -36,3 +37,6 @@ public:
   		return property;
 	}
 };
+
+
+#endif

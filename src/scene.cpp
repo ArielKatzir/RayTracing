@@ -102,9 +102,6 @@ void Scene::render(FrameBuffer *fb)
             // cerr << "here4" << "\n";
             // getting mesh properties
             Colour colour = property.get_colour();
-            float diffuse_coef = property.get_diffuse();
-            float specular_coef = property.get_specular();
-            float ambient_coef = property.get_ambient();
             bool is_reflective = property.get_reflective();
             bool is_refractive = property.get_refractive();
 
@@ -301,7 +298,6 @@ Colour Scene::refracted(Vertex &intersection_point, Ray r, Vector3 normal, float
     float n1 = 1.0;
     float n2 = 1.7; // (this is set to default, will only have 1 refracted object)
     float refractive_ratio_enter = n1 / n2;
-    float refractive_ratio_exit = n2 / n1;
     float t = max;
     Properties property;
     Vector3 new_normal;
@@ -416,7 +412,7 @@ void Scene::first_pass_part_one(std::vector<Photon> &photons, std::vector<Rectan
     // value to determine how far from the centre of an object photons should be sent
     // this adds the issue of polymeshes that dont have a point of reference and therefore are yet to be included
     float direction_error = 0.5;
-    int photons_per_objects = 50000;
+    int photons_per_objects = 10000;
 
     for (int r = 0; r < rects.size(); r++){
         if (rects[r].getProperty().get_refractive()){
@@ -649,13 +645,10 @@ void Scene::add_intersection(Photon p, Photon_Hit &closest_temp, float t, Proper
 }
 
 Photon Scene::generate_refracted_photon(Vector3 normal , Photon p, Vertex intersection){
-    float shift_t = 0.001;
     // gets refractive indexes
     float n1 = 1.0;
     float n2 = 1.5; // (this is set to default)
     float refractive_ratio_enter = n1 / n2;
-    float refractive_ratio_exit = n2 / n1;
-    float t = max;
     Properties property;
     Vector3 new_normal;
 

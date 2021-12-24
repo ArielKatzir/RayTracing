@@ -7,11 +7,11 @@
 
 // Ray is a class to store and maniplulate 3D rays.
 
+#ifndef COLOUR_H
+#define COLOUR_H
+
+
 #pragma once
-
-#include "vertex.h"
-#include "my_vector.h"
-
 
 class Colour {
 
@@ -32,3 +32,5 @@ class Colour {
             green = 0; 
         }
 };
+
+#endif 

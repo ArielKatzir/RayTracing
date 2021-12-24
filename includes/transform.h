@@ -1,11 +1,12 @@
 /***************************************************************************
  *
  * krt - Kens Raytracer - Coursework Edition. (C) Copyright 1997-2019.
- *
- * Do what you like with this code as long as you retain this comment.
  */
 
 // Transform is a class to store, manipulate and apply transforms.
+
+#ifndef TRANSFORM_H
+#define TRANSFORM_H
 
 #pragma once
 
@@ -126,15 +127,6 @@ public:
 
       return C;
   }
-
-
-
-//     mult<4, 3, 2>(A, B);
-//     return 0;
-// }
-
-
-
-
-
 };
+
+#endif

@@ -1,7 +1,9 @@
+#ifndef PHOTONHIT_H
+#define PHOTONHIT_H
+
+
 #include "my_vector.h"
 #include "vertex.h"
-#include "ray.h"
-#include "light.h"
 #include "photon.h"
 
 
@@ -19,7 +21,7 @@ class Photon_Hit {
         int depth;
         Photon photon;
         float intensity, t;
-        int type; // 0 = direct, 1 = shadow;
+        int type; // 0 = direct, 1 = shadow, 2 = refraction;
 
         Photon_Hit(Photon &p, float t_, int depth_, int type_, float intensity_, Vector3 &normal_){
             photon = p;
@@ -41,3 +43,5 @@ class Photon_Hit {
 
         
 };
+
+#endif

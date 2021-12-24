@@ -5,7 +5,6 @@
 
 #include <cmath>
 #include <iostream>
-#include "vertex.h"
 
 using std::sqrt;
 

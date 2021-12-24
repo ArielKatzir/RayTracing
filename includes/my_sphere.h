@@ -1,4 +1,7 @@
-#include "my_vector.h"
+#ifndef SPHERE_H
+#define SPHERE_H
+
+
 #include "vertex.h"
 #include "properties.h"
 
@@ -32,3 +35,4 @@ class Sphere
 
 
 };
+#endif

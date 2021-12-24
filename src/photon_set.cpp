@@ -1,35 +1,10 @@
-#include "my_vector.h"
-#include "vertex.h"
-#include "ray.h"
-#include "light.h"
-#include <vector>
-#include <cmath>
-#include "photon_hit.h"
-#include "photon.h"
-#include "kd-master/src/tree.h"
+#include "photon_set.h"
 
 
-
-using namespace std;
-
-#pragma once
-class PhotonsSet {
-    public:
-    
-    Vertex origin;
-    vector<Photon> photons;
-    vector<Vector3> conversion_lookup_table;
-    vector<Photon_Hit> photon_hits;
-    int photon_number;
-    PointLight pointlight;
-    Utils util;
-
-    float randomNumber_z,randomNumber_x,randomNumber_y, random_float,signx,signy,signz;
-
-    PhotonsSet(PointLight pl){
+    PhotonsSet::PhotonsSet(PointLight pl){
         origin = pl.get_light_position();
         pointlight = pl;
-        photon_number = 100000;
+        photon_number = 10000;
 
         // creating spherical to cartesian look-up table
         create_lookup_table();
@@ -39,12 +14,12 @@ class PhotonsSet {
 
 
 
-    PhotonsSet(){}
+    PhotonsSet::PhotonsSet(){}
 
 
 
     // function to convert spherical coordinates to cartesian
-    Vector3 spherical_to_cartesian(int phi, int theta){
+    Vector3 PhotonsSet::spherical_to_cartesian(int phi, int theta){
         float x,y,z;
         x = (sin(phi) * cos(theta))*(180/M_PI);
         y = (sin(theta) * sin(phi))*(180/M_PI);
@@ -52,12 +27,12 @@ class PhotonsSet {
         return Vector3(x,y,z);
     }
 
-    Vector3 get_direction_from_table(int phi,int theta){
+    Vector3 PhotonsSet::get_direction_from_table(int phi,int theta){
         Vector3 vect = conversion_lookup_table[phi*256+theta];
         return vect;
     }
 
-    void create_lookup_table(){
+    void PhotonsSet::create_lookup_table(){
         for (int i = 0; i < 256; i++) {
             for (int j = 0; j < 256; j++) {
                 conversion_lookup_table.push_back(spherical_to_cartesian(i, j));
@@ -66,7 +41,7 @@ class PhotonsSet {
     }
 
     // generating n photons
-    void generate_photons(int n){
+    void PhotonsSet::generate_photons(int n){
         srand((unsigned) time(0));
 
         // loop to generate photons in random directions around the scene
@@ -100,7 +75,7 @@ class PhotonsSet {
         }
     }
 
-    void generate_photons_to_object(std::vector<Photon> &photons, Vertex centre, float error, int amount, PointLight pl){
+    void PhotonsSet::generate_photons_to_object(std::vector<Photon> &photons, Vertex centre, float error, int amount, PointLight pl){
         Vector3 photon_direction;
         int c = 0;
         while (c < amount){
@@ -129,14 +104,14 @@ class PhotonsSet {
             Vector3 for_photon = util.get_vector(centre, endpoint);
             //cerr << for_photon.x << " " << for_photon.y << " " << for_photon.z << "\n";
 
-            Photon p = Photon(pl.get_light_position(), photon_direction, Colour(1,1,1));
+            Photon p = Photon(pl.get_light_position(), for_photon, Colour(1,1,1));
             photons.push_back(p);
             c++;
             }
     }
 
 
-    Photon generate_diffuse_photon(Vector3 normal , Photon p, Vertex intersection, Properties prop){
+    Photon PhotonsSet::generate_diffuse_photon(Vector3 normal , Photon p, Vertex intersection, Properties prop){
             Vector3 photon_direction;
 
             while (true){
@@ -172,11 +147,10 @@ class PhotonsSet {
             }
     }
 
-    Photon generate_specular_photon(Vector3 normal , Photon p, Vertex intersection, Properties prop){
+    Photon PhotonsSet::generate_specular_photon(Vector3 normal , Photon p, Vertex intersection, Properties prop){
         Vector3 vec_reflected = p.photon_ray.get_direction() - (normal * (2 * util.dot(p.photon_ray.get_direction(),normal)));
         vec_reflected.normalise();
         Photon p_reflected = Photon(intersection, vec_reflected , prop.get_colour());
         photons.push_back(p);
         return p_reflected;
     }
-};

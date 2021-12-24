@@ -1,6 +1,7 @@
+#ifndef LIGHT_H
+#define LIGHT_H
+
 #include "vertex.h"
-
-
 #pragma once
 
 class PointLight {    
@@ -17,3 +18,6 @@ class PointLight {
         PointLight(){light_location = Vertex(0,0,0);}
         Vertex get_light_position(){return light_location;}
 };
+
+
+#endif

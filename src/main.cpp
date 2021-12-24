@@ -42,14 +42,6 @@ int main() {
     FrameBuffer *fb = new FrameBuffer(img_w,img_h);
 
 
-    //triangle for single triangle testing
-    Vertex A = Vertex(0 , 1.25 , 3);                                    
-    Vertex B = Vertex(2 , -1.25, 3);                                    
-    Vertex C = Vertex(-2, -1.25, 3);  
-    Triangle tri = Triangle(A,B,C);
-
-    int theta = 90;
-
     // The following transform allows 4D homogeneous coordinates to be transformed. It moves the supplied teapot model to somewhere visible.
     Transform *transform = new Transform(   0.2f, 0.0f, 0.0f, 0.7f,
                                             0.0f, 0.0f, 0.2f, -1.0f,
@@ -61,7 +53,7 @@ int main() {
 
     /// teapot
     Properties teapot_property = Properties(Colour(0.9,0.5,0.7), 0.6, 0.8, 0, false, false);
-    PolyMesh *pm = new PolyMesh((char *)"teapot_smaller.ply", transform, teapot_property);     
+    PolyMesh *pm = new PolyMesh((char *)"assets/teapot_smaller.ply", transform, teapot_property);     
 
     Properties sp_property = Properties(Colour(0.3,0.5,0.7), 0.8, 0.8, 0, false, false);
     Sphere sp = Sphere(Vertex(1.3,1,6.5) , 0.2, sp_property);
@@ -91,7 +83,7 @@ int main() {
     
     scene.render(fb);
 
-    fb->writeRGBFile((char*)("image.ppm"));
+    fb->writeRGBFile((char*)("tests_and_renders/image.ppm"));
     //fb->writeDepthFile((char*)("image_depth.ppm"));
 
     
