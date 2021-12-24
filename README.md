@@ -1,19 +1,29 @@
-# RayTracing
+# RayTracing and Photon mapping
 
-Using ray tracing to render 3d objects with cpp
+Implementation of ray tracing and photon mapping to render 3d objects using c++
 
-Convert image.ppm file into png to see different renders
+## Features
 
-Bottom sphere is an example of refraction.
+* Ray tracing on:
+  * Spheres
+  * Rectangles
+  * Tiangles
+  * Meshes
+* Point light
+* Phong model
+* Cornell box
+* Basic shadow implementation using shadow rays (commented out in scene.cpp)
+* Refraction
+* Reflection
+* Photon mapping exhibits:
+  * Colour bleeding
+  * Better shadow estimation
+  * Caustics
 
-Purple sphere exhibits a shadow caused by the mirror sphere.
 
-Top sphere exhibits Phong's model
-
-Mirror sphere is an example of reflection, notice that the other spheres retain their
-properties from the mirrors reflection.
+## Final Image:
+<img src="tests_and_renders/final_image.png" width="600" height="600" />
 
 
-
-
-
+- Image resolution can be modified in main.cpp
+- Photon number can be modified in photon_set.cpp
