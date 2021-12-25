@@ -1,6 +1,6 @@
 # RayTracing and Photon mapping
 
-Implementation of ray tracing and photon mapping to render 3d objects using c++
+Implementation of ray tracing and photon mapping to render 3d objects using C++
 
 ## Features
 
